@@ -16,6 +16,7 @@ class AppConstants {
   static const String keyRole = 'tf_role';
   static const String keyUserName = 'tf_user_name';
   static const String keyUserEmail = 'tf_user_email';
+  static const String keyUserAvatar = 'tf_user_avatar';
 
   static const String keyOfflineMode = 'tf_offline_mode';
   static const String keySimulateError = 'tf_simulate_error';

@@ -13,7 +13,11 @@ abstract class AuthRepository {
     required String password,
   });
 
+  Future<AuthSession?> restoreSession();
+
   Future<AuthSession> refreshSession(AuthSession current);
+
+  Future<void> logout();
 
   Future<User?> findUserByEmail(String email);
 }

@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 
 import 'core/network/mock_data_store.dart';
+import 'core/storage/session_storage.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/data/repositories/org_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
@@ -18,9 +19,13 @@ Future<void> configureDependencies() async {
   final store = MockDataStore();
   await store.load();
   sl.registerSingleton<MockDataStore>(store);
+  sl.registerLazySingleton<SessionStorage>(() => SessionStorage());
 
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(sl()),
+    () => AuthRepositoryImpl(
+      store: sl(),
+      sessionStorage: sl(),
+    ),
   );
   sl.registerLazySingleton<OrgRepository>(
     () => OrgRepositoryImpl(sl()),

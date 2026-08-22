@@ -2,6 +2,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/network/mock_data_store.dart';
+import '../../../../core/storage/session_storage.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -9,9 +10,14 @@ import '../models/auth_models.dart';
 import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl(this._store);
+  AuthRepositoryImpl({
+    required MockDataStore store,
+    required SessionStorage sessionStorage,
+  })  : _store = store,
+        _sessionStorage = sessionStorage;
 
   final MockDataStore _store;
+  final SessionStorage _sessionStorage;
   final _uuid = const Uuid();
 
   @override
@@ -38,7 +44,10 @@ class AuthRepositoryImpl implements AuthRepository {
       (u) => u.email.toLowerCase() == match!.email.toLowerCase(),
     );
 
-    return _sessionFrom(user: user, orgId: match.orgId, role: match.role);
+    final session =
+        _sessionFrom(user: user, orgId: match.orgId, role: match.role);
+    await _sessionStorage.save(session);
+    return session;
   }
 
   @override
@@ -74,7 +83,28 @@ class AuthRepositoryImpl implements AuthRepository {
       ),
     ];
 
-    return _sessionFrom(user: user, orgId: orgId, role: 'member');
+    final session =
+        _sessionFrom(user: user, orgId: orgId, role: 'member');
+    await _sessionStorage.save(session);
+    return session;
+  }
+
+  @override
+  Future<AuthSession?> restoreSession() async {
+    await _store.ensureLoaded();
+    final stored = await _sessionStorage.read();
+    if (stored == null) return null;
+
+    if (stored.isRefreshExpired) {
+      await _sessionStorage.clear();
+      return null;
+    }
+
+    if (stored.isAccessExpired) {
+      return refreshSession(stored);
+    }
+
+    return stored;
   }
 
   @override
@@ -82,17 +112,25 @@ class AuthRepositoryImpl implements AuthRepository {
     await _store.ensureLoaded();
 
     if (current.isRefreshExpired) {
+      await _sessionStorage.clear();
       throw const AuthException('Session expired. Please sign in again.');
     }
 
     final now = DateTime.now();
     final token = _store.tokenTemplate;
-    return current.copyWith(
+    final refreshed = current.copyWith(
       accessToken: '${token.accessToken}.${now.millisecondsSinceEpoch}',
       accessExpiresAt: now.add(
         Duration(seconds: token.accessTokenExpiresInSeconds),
       ),
     );
+    await _sessionStorage.save(refreshed);
+    return refreshed;
+  }
+
+  @override
+  Future<void> logout() async {
+    await _sessionStorage.clear();
   }
 
   @override
