@@ -52,12 +52,7 @@ class _RegisterPageState extends State<RegisterPage> {
         title: Text('Create Account', style: AppTypography.screenTitle()),
       ),
       body: SafeArea(
-        child: BlocConsumer<AuthBloc, AuthState>(
-          listener: (context, state) {
-            if (state is AuthAuthenticated) {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            }
-          },
+        child: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
             final isLoading = state is AuthLoading;
             final error =
