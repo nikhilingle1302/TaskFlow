@@ -127,7 +127,7 @@ docs/             architecture notes, recording + submission checklists
 - Register creates a local session only (not persisted to JSON file)
 - Offline cache stores org-scoped projects/tasks in SharedPreferences (not a full offline-first sync queue)
 - Release APK uses debug signing config (fine for assignment demo)
-- Screen recording is a manual submission step — follow [docs/SCREEN_RECORDING.md](docs/SCREEN_RECORDING.md)
+
 
 ## License
 
