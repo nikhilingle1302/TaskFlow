@@ -1,3 +1,4 @@
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/network/mock_data_store.dart';
 import '../../../projects/domain/entities/organization.dart';
 import '../../domain/entities/org_member.dart';
@@ -41,6 +42,22 @@ class OrgRepositoryImpl implements OrgRepository {
   }
 
   @override
+  Future<List<User>> getEligibleUsers(String orgId) async {
+    await _store.ensureLoaded();
+    _requireOrganization(orgId);
+
+    final memberIds = _store.orgMembers
+        .where((m) => m.orgId == orgId)
+        .map((m) => m.userId)
+        .toSet();
+
+    return _store.users
+        .where((u) => !memberIds.contains(u.id))
+        .map(_toUser)
+        .toList();
+  }
+
+  @override
   Future<OrgMember?> getMembership({
     required String orgId,
     required String userId,
@@ -57,10 +74,82 @@ class OrgRepositoryImpl implements OrgRepository {
   }
 
   @override
+  Future<void> addMember({
+    required String orgId,
+    required String userId,
+    required String role,
+  }) async {
+    await _store.ensureLoaded();
+    _requireAdmin(role);
+    _requireOrganization(orgId);
+    _requireUser(userId);
+
+    final alreadyMember = _store.orgMembers.any(
+      (m) => m.orgId == orgId && m.userId == userId,
+    );
+    if (alreadyMember) {
+      throw const ValidationException(
+        'User is already a member of this organization.',
+      );
+    }
+
+    _store.orgMembers = [
+      ..._store.orgMembers,
+      OrgMemberModel(orgId: orgId, userId: userId, role: 'member'),
+    ];
+  }
+
+  @override
+  Future<void> removeMember({
+    required String orgId,
+    required String userId,
+    required String role,
+  }) async {
+    await _store.ensureLoaded();
+    _requireAdmin(role);
+    _requireOrganization(orgId);
+
+    final index = _store.orgMembers.indexWhere(
+      (m) => m.orgId == orgId && m.userId == userId,
+    );
+    if (index < 0) {
+      throw const NotFoundException(
+        'Member was not found in this organization.',
+      );
+    }
+
+    final list = [..._store.orgMembers];
+    list.removeAt(index);
+    _store.orgMembers = list;
+  }
+
+  @override
   bool isUserInOrg({required String orgId, required String userId}) {
     return _store.orgMembers.any(
       (m) => m.orgId == orgId && m.userId == userId,
     );
+  }
+
+  void _requireAdmin(String role) {
+    if (role != 'org_admin') {
+      throw const ForbiddenException(
+        'Only organization admins can manage members.',
+      );
+    }
+  }
+
+  void _requireOrganization(String orgId) {
+    final exists = _store.organizations.any((o) => o.id == orgId);
+    if (!exists) {
+      throw NotFoundException('Organization $orgId was not found.');
+    }
+  }
+
+  void _requireUser(String userId) {
+    final exists = _store.users.any((u) => u.id == userId);
+    if (!exists) {
+      throw NotFoundException('User $userId was not found.');
+    }
   }
 
   User _toUser(UserModel model) {

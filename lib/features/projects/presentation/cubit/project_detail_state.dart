@@ -13,6 +13,7 @@ class ProjectDetailData extends Equatable {
     required this.members,
     required this.comments,
     required this.isAdmin,
+    this.isMutating = false,
   });
 
   final Project project;
@@ -21,6 +22,7 @@ class ProjectDetailData extends Equatable {
   final List<User> members;
   final List<Comment> comments;
   final bool isAdmin;
+  final bool isMutating;
 
   int get totalTasks => taskSummary.values.fold(0, (a, b) => a + b);
 
@@ -30,6 +32,21 @@ class ProjectDetailData extends Equatable {
 
   int get progressPercent => (progress * 100).round();
 
+  ProjectDetailData copyWith({
+    List<User>? members,
+    bool? isMutating,
+  }) {
+    return ProjectDetailData(
+      project: project,
+      taskSummary: taskSummary,
+      tasks: tasks,
+      members: members ?? this.members,
+      comments: comments,
+      isAdmin: isAdmin,
+      isMutating: isMutating ?? this.isMutating,
+    );
+  }
+
   @override
   List<Object?> get props => [
         project.id,
@@ -38,6 +55,7 @@ class ProjectDetailData extends Equatable {
         members,
         comments,
         isAdmin,
+        isMutating,
       ];
 }
 
@@ -63,6 +81,19 @@ class ProjectDetailLoaded extends ProjectDetailState {
 
   @override
   List<Object?> get props => [data];
+}
+
+class ProjectDetailActionFailure extends ProjectDetailState {
+  const ProjectDetailActionFailure({
+    required this.message,
+    required this.previous,
+  });
+
+  final String message;
+  final ProjectDetailLoaded previous;
+
+  @override
+  List<Object?> get props => [message, previous];
 }
 
 class ProjectDetailFailure extends ProjectDetailState {

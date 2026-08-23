@@ -101,11 +101,28 @@ class FakeOrgRepository implements OrgRepository {
   Future<List<User>> getMembers(String orgId) async => members;
 
   @override
+  Future<List<User>> getEligibleUsers(String orgId) async => [];
+
+  @override
   Future<OrgMember?> getMembership({
     required String orgId,
     required String userId,
   }) async =>
       null;
+
+  @override
+  Future<void> addMember({
+    required String orgId,
+    required String userId,
+    required String role,
+  }) async {}
+
+  @override
+  Future<void> removeMember({
+    required String orgId,
+    required String userId,
+    required String role,
+  }) async {}
 
   @override
   bool isUserInOrg({required String orgId, required String userId}) =>

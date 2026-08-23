@@ -110,7 +110,14 @@ class _ProjectDetailView extends StatelessWidget {
         }
       },
       builder: (context, projectListState) {
-        return BlocBuilder<ProjectDetailCubit, ProjectDetailState>(
+        return BlocConsumer<ProjectDetailCubit, ProjectDetailState>(
+          listener: (context, state) {
+            if (state is ProjectDetailActionFailure) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
+            }
+          },
           builder: (context, state) {
             if (state is ProjectDetailLoading ||
                 state is ProjectDetailInitial) {
@@ -201,12 +208,25 @@ class _ProjectDetailView extends StatelessWidget {
                     ],
                   ),
                 ),
-                body: TabBarView(
+                body: Stack(
                   children: [
-                    _OverviewTab(data: data),
-                    _TasksTab(tasks: data.tasks),
-                    _MembersTab(members: data.members),
-                    _ActivityTab(comments: data.comments),
+                    TabBarView(
+                      children: [
+                        _OverviewTab(data: data),
+                        _TasksTab(tasks: data.tasks),
+                        _MembersTab(
+                          members: data.members,
+                          isAdmin: data.isAdmin,
+                          isMutating: data.isMutating,
+                        ),
+                        _ActivityTab(comments: data.comments),
+                      ],
+                    ),
+                    if (data.isMutating)
+                      const ColoredBox(
+                        color: Color(0x33000000),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
                   ],
                 ),
               ),
@@ -352,28 +372,145 @@ class _TasksTab extends StatelessWidget {
 }
 
 class _MembersTab extends StatelessWidget {
-  const _MembersTab({required this.members});
+  const _MembersTab({
+    required this.members,
+    required this.isAdmin,
+    required this.isMutating,
+  });
 
   final List<User> members;
+  final bool isAdmin;
+  final bool isMutating;
+
+  Future<void> _addMember(BuildContext context) async {
+    final cubit = context.read<ProjectDetailCubit>();
+    final eligible = await cubit.eligibleUsers();
+    if (!context.mounted) return;
+
+    if (eligible.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No eligible users to add.')),
+      );
+      return;
+    }
+
+    final selected = await showDialog<User>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('Add member'),
+          children: eligible
+              .map(
+                (user) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, user),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(user.name, style: AppTypography.body()),
+                    subtitle: Text(user.email, style: AppTypography.caption()),
+                  ),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+
+    if (selected != null && context.mounted) {
+      await cubit.addMember(selected.id);
+    }
+  }
+
+  Future<void> _confirmRemove(BuildContext context, User member) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove member?'),
+        content: Text(
+          'Remove ${member.name} from this organization?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await context.read<ProjectDetailCubit>().removeMember(member.id);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: EdgeInsets.all(AppSpacing.screenHorizontal.w),
-      itemCount: members.length,
-      separatorBuilder: (_, __) => SizedBox(height: AppSpacing.sm.h),
-      itemBuilder: (context, index) {
-        final member = members[index];
-        return ListTile(
-          tileColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg.r),
-            side: const BorderSide(color: AppColors.border),
+    return Column(
+      children: [
+        if (isAdmin)
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.screenHorizontal.w,
+              AppSpacing.md.h,
+              AppSpacing.screenHorizontal.w,
+              0,
+            ),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: isMutating ? null : () => _addMember(context),
+                icon: Icon(Icons.person_add_outlined, size: 18.sp),
+                label: const Text('Add member'),
+              ),
+            ),
           ),
-          title: Text(member.name, style: AppTypography.body()),
-          subtitle: Text(member.email, style: AppTypography.caption()),
-        );
-      },
+        Expanded(
+          child: members.isEmpty
+              ? Center(
+                  child: Text(
+                    'No members yet.',
+                    style: AppTypography.body(color: AppColors.textSecondary),
+                  ),
+                )
+              : ListView.separated(
+                  padding: EdgeInsets.all(AppSpacing.screenHorizontal.w),
+                  itemCount: members.length,
+                  separatorBuilder: (_, __) =>
+                      SizedBox(height: AppSpacing.sm.h),
+                  itemBuilder: (context, index) {
+                    final member = members[index];
+                    return ListTile(
+                      tileColor: AppColors.surface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.lg.r),
+                        side: const BorderSide(color: AppColors.border),
+                      ),
+                      title: Text(member.name, style: AppTypography.body()),
+                      subtitle:
+                          Text(member.email, style: AppTypography.caption()),
+                      trailing: isAdmin
+                          ? PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'remove') {
+                                  _confirmRemove(context, member);
+                                }
+                              },
+                              itemBuilder: (context) => const [
+                                PopupMenuItem(
+                                  value: 'remove',
+                                  child: Text('Remove'),
+                                ),
+                              ],
+                            )
+                          : null,
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }

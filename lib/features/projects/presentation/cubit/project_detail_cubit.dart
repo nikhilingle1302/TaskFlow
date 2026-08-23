@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/app_exception.dart';
+import '../../../auth/domain/entities/user.dart';
 import '../../../auth/domain/repositories/org_repository.dart';
 import '../../../tasks/domain/entities/comment.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
@@ -76,6 +77,56 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
       emit(ProjectDetailFailure(message: e.message));
     } catch (_) {
       emit(const ProjectDetailFailure(message: 'Could not load project.'));
+    }
+  }
+
+  Future<List<User>> eligibleUsers() {
+    return _orgRepository.getEligibleUsers(_orgId);
+  }
+
+  Future<void> addMember(String userId) async {
+    final current = state;
+    if (current is! ProjectDetailLoaded) return;
+
+    emit(ProjectDetailLoaded(current.data.copyWith(isMutating: true)));
+    try {
+      await _orgRepository.addMember(
+        orgId: _orgId,
+        userId: userId,
+        role: _role,
+      );
+      await load();
+    } on AppException catch (e) {
+      emit(
+        ProjectDetailActionFailure(
+          message: e.message,
+          previous: current,
+        ),
+      );
+      emit(current);
+    }
+  }
+
+  Future<void> removeMember(String userId) async {
+    final current = state;
+    if (current is! ProjectDetailLoaded) return;
+
+    emit(ProjectDetailLoaded(current.data.copyWith(isMutating: true)));
+    try {
+      await _orgRepository.removeMember(
+        orgId: _orgId,
+        userId: userId,
+        role: _role,
+      );
+      await load();
+    } on AppException catch (e) {
+      emit(
+        ProjectDetailActionFailure(
+          message: e.message,
+          previous: current,
+        ),
+      );
+      emit(current);
     }
   }
 }
