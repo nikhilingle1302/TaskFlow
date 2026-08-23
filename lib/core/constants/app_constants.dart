@@ -24,8 +24,8 @@ class AppConstants {
   static const String keyCachedTasks = 'tf_cached_tasks';
   static const String keyLastSyncAt = 'tf_last_sync_at';
 
-  static const int minDelayMs = 300;
-  static const int maxDelayMs = 700;
+  static const int minDelayMs = 100;
+  static const int maxDelayMs = 250;
 
   static const String forceNotFoundTaskId = 'task_force_404';
   static const String forceTimeoutProjectId = 'proj_force_timeout';

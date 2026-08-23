@@ -10,6 +10,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../injection.dart';
+import '../../../../shared/widgets/loading_state.dart';
 import '../../../../shared/widgets/priority_chip.dart';
 import '../../../../shared/widgets/status_chip.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -89,6 +90,9 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
     );
     if (updated == true && mounted) {
       detailCubit.load();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Task updated')),
+      );
     }
   }
 
@@ -114,7 +118,12 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
     if (confirmed == true && mounted) {
       try {
         await context.read<TaskDetailCubit>().delete();
-        if (mounted) context.pop();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Task deleted')),
+          );
+          context.pop();
+        }
       } on AppException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -128,6 +137,11 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
   Future<void> _changeStatus(String status) async {
     try {
       await context.read<TaskDetailCubit>().updateStatus(status);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Status updated')),
+        );
+      }
     } on AppException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -140,6 +154,11 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
   Future<void> _changePriority(String priority) async {
     try {
       await context.read<TaskDetailCubit>().updatePriority(priority);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Priority updated')),
+        );
+      }
     } on AppException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -152,6 +171,15 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
   Future<void> _changeAssignee(String? userId) async {
     try {
       await context.read<TaskDetailCubit>().assign(userId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userId == null ? 'Assignee cleared' : 'Assignee updated',
+            ),
+          ),
+        );
+      }
     } on AppException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -168,6 +196,11 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
     try {
       await context.read<TaskDetailCubit>().addComment(body);
       _commentController.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Comment added')),
+        );
+      }
     } on AppException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -182,8 +215,9 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
     return BlocBuilder<TaskDetailCubit, TaskDetailState>(
       builder: (context, state) {
         if (state is TaskDetailLoading || state is TaskDetailInitial) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            appBar: AppBar(),
+            body: const LoadingState(),
           );
         }
 

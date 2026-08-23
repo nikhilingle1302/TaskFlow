@@ -59,7 +59,7 @@ class _MainShellState extends State<MainShell> {
                 setState(() => _index = index);
               },
               backgroundColor: AppColors.surface,
-              indicatorColor: AppColors.primaryLight,
+              indicatorColor: AppColors.primary,
               destinations: [
                 NavigationDestination(
                   icon: Icon(Icons.home_outlined, size: 22.sp),

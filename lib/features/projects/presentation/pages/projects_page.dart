@@ -67,6 +67,9 @@ class _ProjectsViewState extends State<_ProjectsView> {
     );
     if (created == true && mounted) {
       context.read<ProjectCubit>().load();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Project created')),
+      );
     }
   }
 

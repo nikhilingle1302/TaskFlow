@@ -12,6 +12,7 @@ import '../../domain/entities/task_item.dart';
 import '../cubit/task_cubit.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/loading_state.dart';
 
 class TaskFormPage extends StatefulWidget {
   const TaskFormPage({
@@ -326,7 +327,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
           : BlocBuilder<TaskCubit, TaskState>(
               builder: (context, state) {
                 if (state is TaskLoading || state is TaskInitial) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const LoadingState();
                 }
 
                 final projects = _projectsFromCubit(state);

@@ -58,13 +58,21 @@ UI (pages/widgets)
 
 See [docs/architecture.md](docs/architecture.md) for more detail.
 
+## Auth / token flow (simulated)
+
+1. Login validates credentials from `auth_mock` in the mock JSON (via the auth repository — not hardcoded in UI).
+2. On success, access + refresh tokens and session metadata are stored in **secure storage** (passwords are never stored).
+3. Access tokens expire after **15 minutes** (`access_token_expires_in_seconds = 900`).
+4. On app launch, splash restores the session; if access is expired but refresh is valid, a **mock refresh** issues a new access token.
+5. Logout clears secure storage and blocks authenticated routes.
+
 ## Mock data & simulated conditions
 
 All data is read from `assets/mock_data/taskflow_mock_data.json` through repositories — never directly from widgets.
 
 ### Artificial delay
 
-Every simulated network call waits **300–700 ms** so loading states are visible.
+Every simulated network call waits **100–250 ms** so loading states are still visible without feeling slow.
 
 ### Offline mode
 
@@ -105,7 +113,22 @@ lib/
 test/             unit + widget tests
 integration_test/ end-to-end flows
 assets/mock_data/ bundled JSON
-docs/             architecture notes
+docs/             architecture notes, recording + submission checklists
 ```
 
+## Screen recording & submission
 
+- Demo script: [docs/SCREEN_RECORDING.md](docs/SCREEN_RECORDING.md)
+- Submission checklist: [docs/SUBMISSION_CHECKLIST.md](docs/SUBMISSION_CHECKLIST.md)
+
+## Known limitations
+
+- No real backend; `dio` / `retrofit` are listed for future API swap but not wired yet
+- Register creates a local session only (not persisted to JSON file)
+- Offline cache stores org-scoped projects/tasks in SharedPreferences (not a full offline-first sync queue)
+- Release APK uses debug signing config (fine for assignment demo)
+- Screen recording is a manual submission step — follow [docs/SCREEN_RECORDING.md](docs/SCREEN_RECORDING.md)
+
+## License
+
+Assignment/demo project — not published to pub.dev.

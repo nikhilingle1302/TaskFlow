@@ -11,6 +11,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../injection.dart';
+import '../../../../shared/widgets/loading_state.dart';
 import '../../../auth/domain/entities/user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../tasks/domain/entities/comment.dart';
@@ -87,6 +88,9 @@ class _ProjectDetailView extends StatelessWidget {
       try {
         await context.read<ProjectCubit>().deleteProject(projectId);
         if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Project deleted')),
+          );
           context.pop();
         }
       } on AppException catch (e) {
@@ -121,8 +125,9 @@ class _ProjectDetailView extends StatelessWidget {
           builder: (context, state) {
             if (state is ProjectDetailLoading ||
                 state is ProjectDetailInitial) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+              return Scaffold(
+                appBar: AppBar(),
+                body: const LoadingState(),
               );
             }
 
@@ -177,6 +182,9 @@ class _ProjectDetailView extends StatelessWidget {
                           );
                           if (updated == true && context.mounted) {
                             context.read<ProjectDetailCubit>().load();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Project updated')),
+                            );
                           }
                         } else if (value == 'delete') {
                           await _confirmDelete(context, project.id);
@@ -223,9 +231,11 @@ class _ProjectDetailView extends StatelessWidget {
                       ],
                     ),
                     if (data.isMutating)
-                      const ColoredBox(
-                        color: Color(0x33000000),
-                        child: Center(child: CircularProgressIndicator()),
+                      const Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: LinearProgressIndicator(minHeight: 2),
                       ),
                   ],
                 ),
@@ -416,7 +426,12 @@ class _MembersTab extends StatelessWidget {
     );
 
     if (selected != null && context.mounted) {
-      await cubit.addMember(selected.id);
+      final added = await cubit.addMember(selected.id);
+      if (added && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${selected.name} added to organization')),
+        );
+      }
     }
   }
 
@@ -442,7 +457,13 @@ class _MembersTab extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      await context.read<ProjectDetailCubit>().removeMember(member.id);
+      final removed =
+          await context.read<ProjectDetailCubit>().removeMember(member.id);
+      if (removed && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${member.name} removed')),
+        );
+      }
     }
   }
 

@@ -124,6 +124,9 @@ class _TasksViewState extends State<_TasksView> {
 
     if (taskId != null && mounted) {
       cubit.load();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Task created')),
+      );
     }
   }
 

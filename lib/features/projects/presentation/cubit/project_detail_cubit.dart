@@ -84,9 +84,9 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
     return _orgRepository.getEligibleUsers(_orgId);
   }
 
-  Future<void> addMember(String userId) async {
+  Future<bool> addMember(String userId) async {
     final current = state;
-    if (current is! ProjectDetailLoaded) return;
+    if (current is! ProjectDetailLoaded) return false;
 
     emit(ProjectDetailLoaded(current.data.copyWith(isMutating: true)));
     try {
@@ -96,6 +96,7 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
         role: _role,
       );
       await load();
+      return true;
     } on AppException catch (e) {
       emit(
         ProjectDetailActionFailure(
@@ -104,12 +105,13 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
         ),
       );
       emit(current);
+      return false;
     }
   }
 
-  Future<void> removeMember(String userId) async {
+  Future<bool> removeMember(String userId) async {
     final current = state;
-    if (current is! ProjectDetailLoaded) return;
+    if (current is! ProjectDetailLoaded) return false;
 
     emit(ProjectDetailLoaded(current.data.copyWith(isMutating: true)));
     try {
@@ -119,6 +121,7 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
         role: _role,
       );
       await load();
+      return true;
     } on AppException catch (e) {
       emit(
         ProjectDetailActionFailure(
@@ -127,6 +130,7 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
         ),
       );
       emit(current);
+      return false;
     }
   }
 }
