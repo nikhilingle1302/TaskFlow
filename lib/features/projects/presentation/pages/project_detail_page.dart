@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../injection.dart';
 import '../../../auth/domain/entities/user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -322,23 +323,27 @@ class _TasksTab extends StatelessWidget {
       separatorBuilder: (_, __) => SizedBox(height: AppSpacing.sm.h),
       itemBuilder: (context, index) {
         final task = tasks[index];
-        return Container(
-          padding: EdgeInsets.all(AppSpacing.lg.w),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.lg.r),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(task.title, style: AppTypography.cardTitle()),
-              SizedBox(height: AppSpacing.xs.h),
-              Text(
-                '${task.status} · ${task.priority}',
-                style: AppTypography.caption(),
-              ),
-            ],
+        return InkWell(
+          onTap: () => context.push(AppRoutes.taskDetailPath(task.id)),
+          borderRadius: BorderRadius.circular(AppRadius.lg.r),
+          child: Container(
+            padding: EdgeInsets.all(AppSpacing.lg.w),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg.r),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(task.title, style: AppTypography.cardTitle()),
+                SizedBox(height: AppSpacing.xs.h),
+                Text(
+                  '${task.status} · ${task.priority}',
+                  style: AppTypography.caption(),
+                ),
+              ],
+            ),
           ),
         );
       },

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -214,14 +216,24 @@ class _TasksViewState extends State<_TasksView> {
                         ),
                       ),
                       ...group.items.map(
-                        (item) => TaskListTile(item: item),
+                        (item) => TaskListTile(
+                          item: item,
+                          onTap: () => context.push(
+                            AppRoutes.taskDetailPath(item.task.id),
+                          ),
+                        ),
                       ),
                       SizedBox(height: AppSpacing.lg.h),
                     ];
                   })
                 else
                   ...state.flatItems.map(
-                    (item) => TaskListTile(item: item),
+                    (item) => TaskListTile(
+                      item: item,
+                      onTap: () => context.push(
+                        AppRoutes.taskDetailPath(item.task.id),
+                      ),
+                    ),
                   ),
               ],
             ),
