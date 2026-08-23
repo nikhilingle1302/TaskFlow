@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_routes.dart';
+import 'core/settings/app_settings_cubit.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'injection.dart';
+import 'shared/widgets/offline_banner.dart';
 
 class TaskFlowApp extends StatefulWidget {
   const TaskFlowApp({super.key});
@@ -44,8 +46,13 @@ class _TaskFlowAppState extends State<TaskFlowApp> {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return BlocProvider.value(
-          value: _authBloc,
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: _authBloc),
+            BlocProvider(
+              create: (_) => AppSettingsCubit(sl())..load(),
+            ),
+          ],
           child: BlocListener<AuthBloc, AuthState>(
             listenWhen: (previous, current) {
               return current is AuthAuthenticated ||
@@ -63,6 +70,14 @@ class _TaskFlowAppState extends State<TaskFlowApp> {
               debugShowCheckedModeBanner: false,
               theme: AppTheme.light(),
               routerConfig: _router,
+              builder: (context, child) {
+                return Column(
+                  children: [
+                    const OfflineBanner(),
+                    Expanded(child: child ?? const SizedBox.shrink()),
+                  ],
+                );
+              },
             ),
           ),
         );

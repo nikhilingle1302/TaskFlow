@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../../domain/entities/app_notification.dart';
 import '../../domain/repositories/notification_repository.dart';
 import 'notification_state.dart';
@@ -30,6 +31,8 @@ class NotificationCubit extends Cubit<NotificationState> {
       }
 
       emit(NotificationLoaded(notifications: notifications));
+    } on AppException catch (e) {
+      emit(NotificationFailure(message: e.message));
     } catch (_) {
       emit(const NotificationFailure(message: 'Could not load notifications.'));
     }

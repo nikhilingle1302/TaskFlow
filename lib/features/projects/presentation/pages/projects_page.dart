@@ -8,6 +8,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../injection.dart';
+import '../../../../shared/widgets/empty_state.dart';
+import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/loading_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../cubit/project_cubit.dart';
 import '../widgets/project_list_card.dart';
@@ -90,22 +93,16 @@ class _ProjectsViewState extends State<_ProjectsView> {
         },
         builder: (context, state) {
           if (state is ProjectLoading || state is ProjectInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingState(listStyle: true);
           }
 
           if (state is ProjectFailure) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(state.message, style: AppTypography.body()),
-                  SizedBox(height: AppSpacing.lg.h),
-                  FilledButton(
-                    onPressed: () => context.read<ProjectCubit>().load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return ErrorState(
+              message: state.message,
+              icon: state.message.toLowerCase().contains('offline')
+                  ? Icons.cloud_off
+                  : Icons.error_outline,
+              onRetry: () => context.read<ProjectCubit>().load(),
             );
           }
 
@@ -131,16 +128,10 @@ class _ProjectsViewState extends State<_ProjectsView> {
                 ),
                 SizedBox(height: AppSpacing.lg.h),
                 if (isEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(top: 48.h),
-                    child: Center(
-                      child: Text(
-                        'No projects yet. Tap + to create one.',
-                        style: AppTypography.body(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
+                  EmptyState(
+                    icon: Icons.folder_open_outlined,
+                    title: 'No projects yet',
+                    subtitle: 'Tap + to create your first project.',
                   )
                 else if (loaded != null)
                   ...loaded.filtered.map(

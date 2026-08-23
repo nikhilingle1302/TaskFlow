@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../../../projects/domain/repositories/project_repository.dart';
 import '../../../tasks/domain/entities/task_item.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
@@ -57,6 +58,8 @@ class HomeCubit extends Cubit<HomeState> {
           projects: items,
         ),
       );
+    } on AppException catch (e) {
+      emit(HomeFailure(message: e.message));
     } catch (_) {
       emit(const HomeFailure(message: 'Could not load dashboard data.'));
     }

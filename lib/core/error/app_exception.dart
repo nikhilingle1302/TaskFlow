@@ -23,3 +23,11 @@ class AuthException extends AppException {
 class ForbiddenException extends AppException {
   const ForbiddenException(super.message) : super(code: '403');
 }
+
+class OfflineException extends AppException {
+  const OfflineException(super.message) : super(code: 'offline');
+}
+
+class NetworkException extends AppException {
+  const NetworkException(super.message) : super(code: 'network');
+}

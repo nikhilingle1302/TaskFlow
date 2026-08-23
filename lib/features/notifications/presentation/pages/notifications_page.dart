@@ -7,6 +7,9 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/empty_state.dart';
+import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/loading_state.dart';
 import '../cubit/notification_cubit.dart';
 import '../widgets/notification_list_tile.dart';
 
@@ -23,32 +26,24 @@ class NotificationsPage extends StatelessWidget {
       body: BlocBuilder<NotificationCubit, NotificationState>(
         builder: (context, state) {
           if (state is NotificationLoading || state is NotificationInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingState(listStyle: true);
           }
 
           if (state is NotificationFailure) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(state.message, style: AppTypography.body()),
-                  SizedBox(height: AppSpacing.lg.h),
-                  FilledButton(
-                    onPressed: () =>
-                        context.read<NotificationCubit>().load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return ErrorState(
+              message: state.message,
+              icon: state.message.toLowerCase().contains('offline')
+                  ? Icons.cloud_off
+                  : Icons.error_outline,
+              onRetry: () => context.read<NotificationCubit>().load(),
             );
           }
 
           if (state is NotificationEmpty) {
-            return Center(
-              child: Text(
-                'No notifications yet.',
-                style: AppTypography.body(color: AppColors.textSecondary),
-              ),
+            return const EmptyState(
+              icon: Icons.notifications_none_outlined,
+              title: 'No notifications yet',
+              subtitle: 'Updates about your tasks will show up here.',
             );
           }
 

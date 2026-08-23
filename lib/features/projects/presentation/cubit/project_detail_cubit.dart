@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../../../auth/domain/repositories/org_repository.dart';
 import '../../../tasks/domain/entities/comment.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
@@ -68,6 +69,8 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
           ),
         ),
       );
+    } on AppException catch (e) {
+      emit(ProjectDetailFailure(message: e.message));
     } catch (_) {
       emit(const ProjectDetailFailure(message: 'Could not load project.'));
     }

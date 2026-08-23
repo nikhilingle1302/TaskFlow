@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../../../auth/domain/entities/auth_session.dart';
 import '../../../auth/domain/repositories/org_repository.dart';
 import 'profile_state.dart';
@@ -29,6 +30,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           orgName: org?.name ?? 'Organization',
         ),
       );
+    } on AppException catch (e) {
+      emit(ProfileFailure(message: e.message));
     } catch (_) {
       emit(const ProfileFailure(message: 'Could not load profile.'));
     }

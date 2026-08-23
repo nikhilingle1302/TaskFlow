@@ -6,6 +6,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../injection.dart';
+import '../../../../shared/widgets/empty_state.dart';
+import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/loading_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../cubit/home_cubit.dart';
 import '../widgets/home_project_card.dart';
@@ -48,22 +51,16 @@ class HomePage extends StatelessWidget {
           child: BlocBuilder<HomeCubit, HomeState>(
             builder: (context, state) {
               if (state is HomeLoading || state is HomeInitial) {
-                return const Center(child: CircularProgressIndicator());
+                return const LoadingState();
               }
 
               if (state is HomeFailure) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(state.message, style: AppTypography.body()),
-                      SizedBox(height: AppSpacing.lg.h),
-                      FilledButton(
-                        onPressed: () => context.read<HomeCubit>().load(),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
+                return ErrorState(
+                  message: state.message,
+                  icon: state.message.toLowerCase().contains('offline')
+                      ? Icons.cloud_off
+                      : Icons.error_outline,
+                  onRetry: () => context.read<HomeCubit>().load(),
                 );
               }
 
@@ -146,14 +143,11 @@ class HomePage extends StatelessWidget {
                         (item) => HomeProjectCard(item: item),
                       ),
                     ] else if (state is HomeEmpty) ...[
-                      SizedBox(height: 48.h),
-                      Center(
-                        child: Text(
-                          'No projects yet for your organization.',
-                          style: AppTypography.body(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
+                      EmptyState(
+                        icon: Icons.folder_open_outlined,
+                        title: 'No projects yet',
+                        subtitle:
+                            'Projects for your organization will appear here.',
                       ),
                     ],
                   ],

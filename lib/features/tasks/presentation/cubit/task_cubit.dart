@@ -78,6 +78,8 @@ class TaskCubit extends Cubit<TaskState> {
       );
 
       emit(_applyFilters(loaded));
+    } on AppException catch (e) {
+      emit(TaskFailure(message: e.message));
     } catch (_) {
       emit(const TaskFailure(message: 'Could not load tasks.'));
     }

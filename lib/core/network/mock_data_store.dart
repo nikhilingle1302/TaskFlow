@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/services.dart';
 
@@ -11,8 +12,15 @@ import '../../features/projects/data/models/project_model.dart';
 import '../../features/tasks/data/models/comment_model.dart';
 import '../../features/tasks/data/models/task_model.dart';
 import '../constants/app_constants.dart';
+import '../error/app_exception.dart';
+import '../storage/app_preferences.dart';
 
 class MockDataStore {
+  MockDataStore(this._preferences);
+
+  final AppPreferences _preferences;
+  final _random = Random();
+
   bool _loaded = false;
 
   List<OrganizationModel> organizations = [];
@@ -69,6 +77,25 @@ class MockDataStore {
   Future<void> ensureLoaded() async {
     if (!_loaded) {
       await load();
+    }
+    await simulateRequest();
+  }
+
+  Future<void> simulateRequest() async {
+    final delay = AppConstants.minDelayMs +
+        _random.nextInt(AppConstants.maxDelayMs - AppConstants.minDelayMs);
+    await Future<void>.delayed(Duration(milliseconds: delay));
+
+    if (_preferences.simulateError) {
+      throw const NetworkException(
+        'Unable to reach TaskFlow right now. Please try again.',
+      );
+    }
+
+    if (_preferences.offlineMode) {
+      throw const OfflineException(
+        'You are offline. Turn off offline mode in Profile to sync.',
+      );
     }
   }
 }

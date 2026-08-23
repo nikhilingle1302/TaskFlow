@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../core/settings/app_settings_cubit.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../injection.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/loading_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../cubit/profile_cubit.dart';
 
@@ -44,22 +47,16 @@ class _ProfileView extends StatelessWidget {
       body: BlocBuilder<ProfileCubit, ProfileState>(
         builder: (context, state) {
           if (state is ProfileLoading || state is ProfileInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingState();
           }
 
           if (state is ProfileFailure) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(state.message, style: AppTypography.body()),
-                  SizedBox(height: AppSpacing.lg.h),
-                  FilledButton(
-                    onPressed: () => context.read<ProfileCubit>().load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return ErrorState(
+              message: state.message,
+              icon: state.message.toLowerCase().contains('offline')
+                  ? Icons.cloud_off
+                  : Icons.error_outline,
+              onRetry: () => context.read<ProfileCubit>().load(),
             );
           }
 
@@ -120,6 +117,53 @@ class _ProfileView extends StatelessWidget {
                   _ProfileRow(label: 'Organization', value: state.orgName),
                   _ProfileRow(label: 'Org ID', value: session.orgId),
                 ],
+              ),
+              SizedBox(height: AppSpacing.xxl.h),
+              Text(
+                'Preferences',
+                style: AppTypography.label(color: AppColors.textSecondary),
+              ),
+              SizedBox(height: AppSpacing.md.h),
+              BlocBuilder<AppSettingsCubit, AppSettingsState>(
+                builder: (context, settingsState) {
+                  if (settingsState is! AppSettingsLoaded) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return _ProfileSection(
+                    children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('Offline mode', style: AppTypography.body()),
+                        subtitle: Text(
+                          'Simulate no network connection',
+                          style: AppTypography.caption(),
+                        ),
+                        value: settingsState.offlineMode,
+                        onChanged: (value) {
+                          context.read<AppSettingsCubit>().setOfflineMode(value);
+                        },
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          'Simulate errors',
+                          style: AppTypography.body(),
+                        ),
+                        subtitle: Text(
+                          'Force request failures for testing',
+                          style: AppTypography.caption(),
+                        ),
+                        value: settingsState.simulateError,
+                        onChanged: (value) {
+                          context
+                              .read<AppSettingsCubit>()
+                              .setSimulateError(value);
+                        },
+                      ),
+                    ],
+                  );
+                },
               ),
               SizedBox(height: AppSpacing.xxl.h),
               AppButton(

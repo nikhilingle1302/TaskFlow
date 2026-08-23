@@ -9,6 +9,9 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../injection.dart';
+import '../../../../shared/widgets/empty_state.dart';
+import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/loading_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../cubit/task_cubit.dart';
 import '../pages/task_form_page.dart';
@@ -141,22 +144,16 @@ class _TasksViewState extends State<_TasksView> {
         },
         builder: (context, state) {
           if (state is TaskLoading || state is TaskInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingState(listStyle: true);
           }
 
           if (state is TaskFailure) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(state.message, style: AppTypography.body()),
-                  SizedBox(height: AppSpacing.lg.h),
-                  FilledButton(
-                    onPressed: () => context.read<TaskCubit>().load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return ErrorState(
+              message: state.message,
+              icon: state.message.toLowerCase().contains('offline')
+                  ? Icons.cloud_off
+                  : Icons.error_outline,
+              onRetry: () => context.read<TaskCubit>().load(),
             );
           }
 
@@ -164,16 +161,12 @@ class _TasksViewState extends State<_TasksView> {
             return RefreshIndicator(
               onRefresh: () => context.read<TaskCubit>().load(),
               child: ListView(
-                padding: EdgeInsets.all(AppSpacing.screenHorizontal.w),
-                children: [
-                  SizedBox(height: 120.h),
-                  Center(
-                    child: Text(
-                      'No tasks yet. Tap + to create one.',
-                      style: AppTypography.body(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  EmptyState(
+                    icon: Icons.task_alt_outlined,
+                    title: 'No tasks yet',
+                    subtitle: 'Tap + to create your first task.',
                   ),
                 ],
               ),

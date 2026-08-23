@@ -57,6 +57,8 @@ class ProjectCubit extends Cubit<ProjectState> {
           isAdmin: isAdmin,
         ),
       );
+    } on AppException catch (e) {
+      emit(ProjectFailure(message: e.message));
     } catch (_) {
       emit(const ProjectFailure(message: 'Could not load projects.'));
     }

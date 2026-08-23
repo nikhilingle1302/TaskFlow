@@ -77,6 +77,8 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
           ),
         ),
       );
+    } on AppException catch (e) {
+      emit(TaskDetailFailure(message: e.message));
     } catch (_) {
       emit(const TaskDetailFailure(message: 'Could not load task.'));
     }
