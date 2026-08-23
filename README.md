@@ -118,8 +118,8 @@ docs/             architecture notes, recording + submission checklists
 
 ## Screen recording & submission
 
-- Demo script: [docs/SCREEN_RECORDING.md](docs/SCREEN_RECORDING.md)
-- Submission checklist: [docs/SUBMISSION_CHECKLIST.md](docs/SUBMISSION_CHECKLIST.md)
+- APK Link: https://drive.google.com/file/d/1ZU_v19pfUl-PXBjFzZd0Wg1l3pjLjcvf/view
+- Demo Video: https://drive.google.com/file/d/1b2XW8u745NabqZ5CZ-GiYjdgJolCKs7a/view?usp=drive_link
 
 ## Known limitations
 
