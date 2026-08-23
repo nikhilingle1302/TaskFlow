@@ -108,14 +108,4 @@ assets/mock_data/ bundled JSON
 docs/             architecture notes
 ```
 
-## Known limitations
 
-- No real backend; `dio` / `retrofit` are listed for future API swap but not wired yet
-- Register creates a local session only (not persisted to JSON file)
-- Offline cache stores org-scoped projects/tasks in SharedPreferences (not a full offline-first sync queue)
-- Release APK uses debug signing config (fine for assignment demo)
-- Screen recording and GitHub submission are manual steps outside the repo
-
-## License
-
-Assignment/demo project — not published to pub.dev.
