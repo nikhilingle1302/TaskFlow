@@ -78,10 +78,9 @@ class MockDataStore {
     if (!_loaded) {
       await load();
     }
-    await simulateRequest();
   }
 
-  Future<void> simulateRequest() async {
+  Future<void> simulateRequest({bool isWrite = false}) async {
     final delay = AppConstants.minDelayMs +
         _random.nextInt(AppConstants.maxDelayMs - AppConstants.minDelayMs);
     await Future<void>.delayed(Duration(milliseconds: delay));
@@ -92,10 +91,41 @@ class MockDataStore {
       );
     }
 
-    if (_preferences.offlineMode) {
+    if (_preferences.offlineMode && isWrite) {
       throw const OfflineException(
-        'You are offline. Turn off offline mode in Profile to sync.',
+        'You are offline. Changes will sync when you reconnect.',
       );
     }
+  }
+
+  void applyOrgCache({
+    required String orgId,
+    List<ProjectModel>? projects,
+    List<TaskModel>? tasks,
+  }) {
+    if (projects != null) {
+      final otherProjects = this.projects.where((p) => p.orgId != orgId);
+      this.projects = [...otherProjects, ...projects];
+    }
+
+    if (tasks != null) {
+      final orgProjectIds = this.projects
+          .where((project) => project.orgId == orgId)
+          .map((project) => project.id)
+          .toSet();
+      final otherTasks =
+          this.tasks.where((task) => !orgProjectIds.contains(task.projectId));
+      this.tasks = [...otherTasks, ...tasks];
+    }
+  }
+
+  List<ProjectModel> projectsForOrg(String orgId) {
+    return projects.where((project) => project.orgId == orgId).toList();
+  }
+
+  List<TaskModel> tasksForOrg(String orgId) {
+    final projectIds =
+        projects.where((p) => p.orgId == orgId).map((p) => p.id).toSet();
+    return tasks.where((task) => projectIds.contains(task.projectId)).toList();
   }
 }

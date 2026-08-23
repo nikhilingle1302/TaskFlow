@@ -35,7 +35,10 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
   Future<void> load() async {
     emit(const ProjectDetailLoading());
     try {
-      final project = await _projectRepository.getProjectById(_projectId);
+      final project = await _projectRepository.getProjectById(
+        orgId: _orgId,
+        projectId: _projectId,
+      );
       final tasks =
           await _taskRepository.getTasks(orgId: _orgId, projectId: _projectId);
       final members = await _orgRepository.getMembers(_orgId);

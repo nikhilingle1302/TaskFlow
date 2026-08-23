@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/network/mock_data_store.dart';
 import 'core/storage/app_preferences.dart';
+import 'core/storage/offline_cache.dart';
 import 'core/storage/session_storage.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/data/repositories/org_repository_impl.dart';
@@ -21,6 +22,7 @@ Future<void> configureDependencies() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerSingleton<SharedPreferences>(sharedPreferences);
   sl.registerLazySingleton<AppPreferences>(() => AppPreferences(sl()));
+  sl.registerLazySingleton<OfflineCache>(() => OfflineCache(sl()));
 
   final store = MockDataStore(sl());
   await store.load();
@@ -37,10 +39,10 @@ Future<void> configureDependencies() async {
     () => OrgRepositoryImpl(sl()),
   );
   sl.registerLazySingleton<ProjectRepository>(
-    () => ProjectRepositoryImpl(sl()),
+    () => ProjectRepositoryImpl(sl(), sl(), sl()),
   );
   sl.registerLazySingleton<TaskRepository>(
-    () => TaskRepositoryImpl(sl()),
+    () => TaskRepositoryImpl(sl(), sl(), sl()),
   );
   sl.registerLazySingleton<NotificationRepository>(
     () => NotificationRepositoryImpl(sl()),

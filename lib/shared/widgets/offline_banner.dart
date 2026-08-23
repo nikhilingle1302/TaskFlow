@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/settings/app_settings_cubit.dart';
+import '../../core/storage/offline_cache.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
+import '../../injection.dart';
 
 class OfflineBanner extends StatelessWidget {
   const OfflineBanner({super.key});
@@ -17,6 +20,11 @@ class OfflineBanner extends StatelessWidget {
         if (state is! AppSettingsLoaded || !state.offlineMode) {
           return const SizedBox.shrink();
         }
+
+        final lastSync = sl<OfflineCache>().lastSyncAt;
+        final syncLabel = lastSync == null
+            ? 'Showing cached data. Last sync unknown.'
+            : 'Showing cached data from ${DateFormat('MMM d, h:mm a').format(lastSync.toLocal())}.';
 
         return Material(
           color: AppColors.warning,
@@ -33,7 +41,7 @@ class OfflineBanner extends StatelessWidget {
                   SizedBox(width: AppSpacing.sm.w),
                   Expanded(
                     child: Text(
-                      'You are offline. Data may be unavailable.',
+                      syncLabel,
                       style: AppTypography.caption(color: AppColors.surface),
                     ),
                   ),

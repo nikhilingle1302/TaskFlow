@@ -73,6 +73,8 @@ class TaskCubit extends Cubit<TaskState> {
         priority: null,
         projectId: null,
         assigneeId: null,
+        dueFrom: null,
+        dueTo: null,
         projects: projects,
         members: members,
       );
@@ -108,6 +110,8 @@ class TaskCubit extends Cubit<TaskState> {
     String? priority,
     String? projectId,
     String? assigneeId,
+    DateTime? dueFrom,
+    DateTime? dueTo,
   }) {
     final current = state;
     if (current is! TaskLoaded) return;
@@ -118,9 +122,13 @@ class TaskCubit extends Cubit<TaskState> {
           priority: priority,
           projectId: projectId,
           assigneeId: assigneeId,
+          dueFrom: dueFrom,
+          dueTo: dueTo,
           clearPriority: priority == null,
           clearProjectId: projectId == null,
           clearAssigneeId: assigneeId == null,
+          clearDueFrom: dueFrom == null,
+          clearDueTo: dueTo == null,
         ),
       ),
     );
@@ -136,6 +144,8 @@ class TaskCubit extends Cubit<TaskState> {
           clearPriority: true,
           clearProjectId: true,
           clearAssigneeId: true,
+          clearDueFrom: true,
+          clearDueTo: true,
         ),
       ),
     );
@@ -158,6 +168,18 @@ class TaskCubit extends Cubit<TaskState> {
       }
       if (state.assigneeId != null && task.assigneeId != state.assigneeId) {
         return false;
+      }
+      if (state.dueFrom != null) {
+        final due = task.dueDate;
+        if (due == null || due.isBefore(_startOfDay(state.dueFrom!))) {
+          return false;
+        }
+      }
+      if (state.dueTo != null) {
+        final due = task.dueDate;
+        if (due == null || due.isAfter(_endOfDay(state.dueTo!))) {
+          return false;
+        }
       }
       if (query.isNotEmpty) {
         final haystack =
@@ -230,6 +252,14 @@ class TaskCubit extends Cubit<TaskState> {
     return groups;
   }
 
+  DateTime _startOfDay(DateTime value) {
+    return DateTime(value.year, value.month, value.day);
+  }
+
+  DateTime _endOfDay(DateTime value) {
+    return DateTime(value.year, value.month, value.day, 23, 59, 59, 999);
+  }
+
   Future<String?> createTask({
     required String projectId,
     required String title,
@@ -287,7 +317,7 @@ class TaskCubit extends Cubit<TaskState> {
     final current = state;
 
     try {
-      await _taskRepository.deleteTask(taskId);
+      await _taskRepository.deleteTask(orgId: _orgId, taskId: taskId);
       if (current is TaskLoaded || current is TaskEmpty) {
         await load();
       }

@@ -36,13 +36,14 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   Future<void> load() async {
     emit(const TaskDetailLoading());
     try {
-      final task = await _taskRepository.getTaskById(_taskId);
-      final project = await _projectRepository.getProjectById(task.projectId);
-
-      if (project.orgId != _orgId) {
-        emit(const TaskDetailFailure(message: 'Task not found.'));
-        return;
-      }
+      final task = await _taskRepository.getTaskById(
+        orgId: _orgId,
+        taskId: _taskId,
+      );
+      final project = await _projectRepository.getProjectById(
+        orgId: _orgId,
+        projectId: task.projectId,
+      );
 
       final members = await _orgRepository.getMembers(_orgId);
       final projects = await _projectRepository.getProjects(_orgId);
@@ -122,7 +123,7 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   }
 
   Future<void> delete() async {
-    await _taskRepository.deleteTask(_taskId);
+    await _taskRepository.deleteTask(orgId: _orgId, taskId: _taskId);
   }
 
   Future<void> addComment(String body) async {

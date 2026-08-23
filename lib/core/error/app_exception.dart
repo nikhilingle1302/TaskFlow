@@ -31,3 +31,7 @@ class OfflineException extends AppException {
 class NetworkException extends AppException {
   const NetworkException(super.message) : super(code: 'network');
 }
+
+class TimeoutException extends AppException {
+  const TimeoutException(super.message) : super(code: 'timeout');
+}

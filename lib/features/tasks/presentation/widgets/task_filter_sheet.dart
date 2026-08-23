@@ -12,11 +12,15 @@ class TaskFilterResult {
     this.priority,
     this.projectId,
     this.assigneeId,
+    this.dueFrom,
+    this.dueTo,
   });
 
   final String? priority;
   final String? projectId;
   final String? assigneeId;
+  final DateTime? dueFrom;
+  final DateTime? dueTo;
 }
 
 Future<TaskFilterResult?> showTaskFilterSheet({
@@ -26,6 +30,8 @@ Future<TaskFilterResult?> showTaskFilterSheet({
   String? initialPriority,
   String? initialProjectId,
   String? initialAssigneeId,
+  DateTime? initialDueFrom,
+  DateTime? initialDueTo,
 }) {
   return showModalBottomSheet<TaskFilterResult>(
     context: context,
@@ -41,6 +47,8 @@ Future<TaskFilterResult?> showTaskFilterSheet({
         initialPriority: initialPriority,
         initialProjectId: initialProjectId,
         initialAssigneeId: initialAssigneeId,
+        initialDueFrom: initialDueFrom,
+        initialDueTo: initialDueTo,
       );
     },
   );
@@ -53,6 +61,8 @@ class _TaskFilterSheet extends StatefulWidget {
     this.initialPriority,
     this.initialProjectId,
     this.initialAssigneeId,
+    this.initialDueFrom,
+    this.initialDueTo,
   });
 
   final List<Project> projects;
@@ -60,6 +70,8 @@ class _TaskFilterSheet extends StatefulWidget {
   final String? initialPriority;
   final String? initialProjectId;
   final String? initialAssigneeId;
+  final DateTime? initialDueFrom;
+  final DateTime? initialDueTo;
 
   @override
   State<_TaskFilterSheet> createState() => _TaskFilterSheetState();
@@ -69,6 +81,8 @@ class _TaskFilterSheetState extends State<_TaskFilterSheet> {
   String? _priority;
   String? _projectId;
   String? _assigneeId;
+  DateTime? _dueFrom;
+  DateTime? _dueTo;
 
   @override
   void initState() {
@@ -76,6 +90,28 @@ class _TaskFilterSheetState extends State<_TaskFilterSheet> {
     _priority = widget.initialPriority;
     _projectId = widget.initialProjectId;
     _assigneeId = widget.initialAssigneeId;
+    _dueFrom = widget.initialDueFrom;
+    _dueTo = widget.initialDueTo;
+  }
+
+  Future<void> _pickDate({
+    required bool isFrom,
+  }) async {
+    final initial = isFrom ? _dueFrom : _dueTo;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isFrom) {
+        _dueFrom = picked;
+      } else {
+        _dueTo = picked;
+      }
+    });
   }
 
   @override
@@ -135,6 +171,32 @@ class _TaskFilterSheetState extends State<_TaskFilterSheet> {
             ],
             onChanged: (value) => setState(() => _assigneeId = value),
           ),
+          SizedBox(height: AppSpacing.md.h),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _pickDate(isFrom: true),
+                  child: Text(
+                    _dueFrom == null
+                        ? 'Due from'
+                        : 'From ${_dueFrom!.toLocal().toString().split(' ').first}',
+                  ),
+                ),
+              ),
+              SizedBox(width: AppSpacing.md.w),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _pickDate(isFrom: false),
+                  child: Text(
+                    _dueTo == null
+                        ? 'Due to'
+                        : 'To ${_dueTo!.toLocal().toString().split(' ').first}',
+                  ),
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: AppSpacing.xl.h),
           Row(
             children: [
@@ -159,6 +221,8 @@ class _TaskFilterSheetState extends State<_TaskFilterSheet> {
                         priority: _priority,
                         projectId: _projectId,
                         assigneeId: _assigneeId,
+                        dueFrom: _dueFrom,
+                        dueTo: _dueTo,
                       ),
                     );
                   },

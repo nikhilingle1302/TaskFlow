@@ -57,6 +57,8 @@ class TaskLoaded extends TaskState {
     required this.priority,
     required this.projectId,
     required this.assigneeId,
+    this.dueFrom,
+    this.dueTo,
     required this.projects,
     required this.members,
   });
@@ -69,6 +71,8 @@ class TaskLoaded extends TaskState {
   final String? priority;
   final String? projectId;
   final String? assigneeId;
+  final DateTime? dueFrom;
+  final DateTime? dueTo;
   final List<Project> projects;
   final List<User> members;
 
@@ -79,6 +83,8 @@ class TaskLoaded extends TaskState {
     if (priority != null) count++;
     if (projectId != null) count++;
     if (assigneeId != null) count++;
+    if (dueFrom != null) count++;
+    if (dueTo != null) count++;
     return count;
   }
 
@@ -91,12 +97,16 @@ class TaskLoaded extends TaskState {
     String? priority,
     String? projectId,
     String? assigneeId,
+    DateTime? dueFrom,
+    DateTime? dueTo,
     List<Project>? projects,
     List<User>? members,
     bool clearStatus = false,
     bool clearPriority = false,
     bool clearProjectId = false,
     bool clearAssigneeId = false,
+    bool clearDueFrom = false,
+    bool clearDueTo = false,
   }) {
     return TaskLoaded(
       allItems: allItems ?? this.allItems,
@@ -107,6 +117,8 @@ class TaskLoaded extends TaskState {
       priority: clearPriority ? null : (priority ?? this.priority),
       projectId: clearProjectId ? null : (projectId ?? this.projectId),
       assigneeId: clearAssigneeId ? null : (assigneeId ?? this.assigneeId),
+      dueFrom: clearDueFrom ? null : (dueFrom ?? this.dueFrom),
+      dueTo: clearDueTo ? null : (dueTo ?? this.dueTo),
       projects: projects ?? this.projects,
       members: members ?? this.members,
     );
@@ -122,6 +134,8 @@ class TaskLoaded extends TaskState {
         priority,
         projectId,
         assigneeId,
+        dueFrom,
+        dueTo,
         projects,
         members,
       ];

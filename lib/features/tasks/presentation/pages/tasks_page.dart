@@ -74,19 +74,25 @@ class _TasksViewState extends State<_TasksView> {
       initialPriority: state.priority,
       initialProjectId: state.projectId,
       initialAssigneeId: state.assigneeId,
+      initialDueFrom: state.dueFrom,
+      initialDueTo: state.dueTo,
     );
 
     if (!mounted || result == null) return;
 
     if (result.priority == null &&
         result.projectId == null &&
-        result.assigneeId == null) {
+        result.assigneeId == null &&
+        result.dueFrom == null &&
+        result.dueTo == null) {
       context.read<TaskCubit>().clearFilters();
     } else {
       context.read<TaskCubit>().applyFilters(
             priority: result.priority,
             projectId: result.projectId,
             assigneeId: result.assigneeId,
+            dueFrom: result.dueFrom,
+            dueTo: result.dueTo,
           );
     }
   }

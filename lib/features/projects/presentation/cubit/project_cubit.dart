@@ -117,10 +117,14 @@ class ProjectCubit extends Cubit<ProjectState> {
           ? current.items
               .firstWhere((item) => item.project.id == projectId)
               .project
-          : await _projectRepository.getProjectById(projectId);
+          : await _projectRepository.getProjectById(
+              orgId: _orgId,
+              projectId: projectId,
+            );
 
       await _projectRepository.updateProject(
-        existing.copyWith(name: name, description: description),
+        orgId: _orgId,
+        project: existing.copyWith(name: name, description: description),
       );
 
       if (current is ProjectLoaded || current is ProjectEmpty) {
@@ -141,6 +145,7 @@ class ProjectCubit extends Cubit<ProjectState> {
 
     try {
       await _projectRepository.deleteProject(
+        orgId: _orgId,
         projectId: projectId,
         role: _role,
       );

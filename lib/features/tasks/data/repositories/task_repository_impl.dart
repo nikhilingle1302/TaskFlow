@@ -1,7 +1,10 @@
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/network/mock_data_store.dart';
+import '../../../../core/storage/app_preferences.dart';
+import '../../../../core/storage/offline_cache.dart';
 import '../../domain/entities/comment.dart';
 import '../../domain/entities/task_item.dart';
 import '../../domain/repositories/task_repository.dart';
@@ -9,9 +12,15 @@ import '../models/comment_model.dart';
 import '../models/task_model.dart';
 
 class TaskRepositoryImpl implements TaskRepository {
-  TaskRepositoryImpl(this._store);
+  TaskRepositoryImpl(
+    this._store,
+    this._preferences,
+    this._cache,
+  );
 
   final MockDataStore _store;
+  final AppPreferences _preferences;
+  final OfflineCache _cache;
   final _uuid = const Uuid();
 
   @override
@@ -21,6 +30,15 @@ class TaskRepositoryImpl implements TaskRepository {
     TaskFilter filter = const TaskFilter(),
   }) async {
     await _store.ensureLoaded();
+    await _store.simulateRequest();
+
+    if (_preferences.offlineMode) {
+      _restoreOrgCache(orgId);
+    }
+
+    if (projectId != null) {
+      _requireProjectInOrg(orgId: orgId, projectId: projectId);
+    }
 
     final projectIds = _store.projects
         .where((p) => p.orgId == orgId)
@@ -32,17 +50,28 @@ class TaskRepositoryImpl implements TaskRepository {
       list = list.where((t) => t.projectId == projectId);
     }
 
-    return list.where((t) => _matchesFilter(t, filter)).map(_toEntity).toList();
+    final models = list.where((t) => _matchesFilter(t, filter)).toList();
+    if (!_preferences.offlineMode) {
+      await _cache.saveTasks(orgId, _store.tasksForOrg(orgId));
+    }
+
+    return models.map(_toEntity).toList();
   }
 
   @override
-  Future<TaskItem> getTaskById(String taskId) async {
+  Future<TaskItem> getTaskById({
+    required String orgId,
+    required String taskId,
+  }) async {
     await _store.ensureLoaded();
-    try {
-      return _toEntity(_store.tasks.firstWhere((t) => t.id == taskId));
-    } catch (_) {
+    await _store.simulateRequest();
+
+    if (taskId == AppConstants.forceNotFoundTaskId) {
       throw NotFoundException('Task $taskId was not found.');
     }
+
+    final model = _requireTaskInOrg(orgId: orgId, taskId: taskId);
+    return _toEntity(model);
   }
 
   @override
@@ -57,19 +86,13 @@ class TaskRepositoryImpl implements TaskRepository {
     DateTime? dueDate,
   }) async {
     await _store.ensureLoaded();
+    await _store.simulateRequest(isWrite: true);
 
     if (title.trim().isEmpty) {
       throw const ValidationException('Task title is required.');
     }
 
-    final projectIndex =
-        _store.projects.indexWhere((p) => p.id == projectId);
-    if (projectIndex < 0) {
-      throw NotFoundException('Project $projectId was not found.');
-    }
-    if (_store.projects[projectIndex].orgId != orgId) {
-      throw const ForbiddenException('Project does not belong to your org.');
-    }
+    _requireProjectInOrg(orgId: orgId, projectId: projectId);
 
     if (assigneeId != null) {
       _assertUserInOrg(orgId, assigneeId);
@@ -88,6 +111,8 @@ class TaskRepositoryImpl implements TaskRepository {
     );
     _store.tasks = [..._store.tasks, model];
     _bumpTaskCount(projectId, 1);
+    await _cache.saveTasks(orgId, _store.tasksForOrg(orgId));
+    await _cache.saveProjects(orgId, _store.projectsForOrg(orgId));
     return _toEntity(model);
   }
 
@@ -97,19 +122,20 @@ class TaskRepositoryImpl implements TaskRepository {
     required TaskItem task,
   }) async {
     await _store.ensureLoaded();
+    await _store.simulateRequest(isWrite: true);
 
     if (task.title.trim().isEmpty) {
       throw const ValidationException('Task title is required.');
     }
+
+    final existing = _requireTaskInOrg(orgId: orgId, taskId: task.id);
+    _requireProjectInOrg(orgId: orgId, projectId: task.projectId);
+
     if (task.assigneeId != null) {
       _assertUserInOrg(orgId, task.assigneeId!);
     }
 
-    final index = _store.tasks.indexWhere((t) => t.id == task.id);
-    if (index < 0) {
-      throw NotFoundException('Task ${task.id} was not found.');
-    }
-
+    final index = _store.tasks.indexWhere((t) => t.id == existing.id);
     final updated = _store.tasks[index].copyWith(
       title: task.title,
       description: task.description,
@@ -123,23 +149,27 @@ class TaskRepositoryImpl implements TaskRepository {
     final list = [..._store.tasks];
     list[index] = updated;
     _store.tasks = list;
+    await _cache.saveTasks(orgId, _store.tasksForOrg(orgId));
     return _toEntity(updated);
   }
 
   @override
-  Future<void> deleteTask(String taskId) async {
+  Future<void> deleteTask({
+    required String orgId,
+    required String taskId,
+  }) async {
     await _store.ensureLoaded();
+    await _store.simulateRequest(isWrite: true);
 
-    final index = _store.tasks.indexWhere((t) => t.id == taskId);
-    if (index < 0) {
-      throw NotFoundException('Task $taskId was not found.');
-    }
+    final existing = _requireTaskInOrg(orgId: orgId, taskId: taskId);
+    final projectId = existing.projectId;
 
-    final projectId = _store.tasks[index].projectId;
     _store.tasks = _store.tasks.where((t) => t.id != taskId).toList();
     _store.comments =
         _store.comments.where((c) => c.taskId != taskId).toList();
     _bumpTaskCount(projectId, -1);
+    await _cache.saveTasks(orgId, _store.tasksForOrg(orgId));
+    await _cache.saveProjects(orgId, _store.projectsForOrg(orgId));
   }
 
   @override
@@ -149,16 +179,15 @@ class TaskRepositoryImpl implements TaskRepository {
     required String? userId,
   }) async {
     await _store.ensureLoaded();
+    await _store.simulateRequest(isWrite: true);
+
+    final existing = _requireTaskInOrg(orgId: orgId, taskId: taskId);
 
     if (userId != null) {
       _assertUserInOrg(orgId, userId);
     }
 
-    final index = _store.tasks.indexWhere((t) => t.id == taskId);
-    if (index < 0) {
-      throw NotFoundException('Task $taskId was not found.');
-    }
-
+    final index = _store.tasks.indexWhere((t) => t.id == existing.id);
     final updated = _store.tasks[index].copyWith(
       assigneeId: userId,
       clearAssignee: userId == null,
@@ -166,12 +195,14 @@ class TaskRepositoryImpl implements TaskRepository {
     final list = [..._store.tasks];
     list[index] = updated;
     _store.tasks = list;
+    await _cache.saveTasks(orgId, _store.tasksForOrg(orgId));
     return _toEntity(updated);
   }
 
   @override
   Future<List<Comment>> getComments(String taskId) async {
     await _store.ensureLoaded();
+    await _store.simulateRequest();
     return _store.comments
         .where((c) => c.taskId == taskId)
         .map(_toComment)
@@ -185,6 +216,7 @@ class TaskRepositoryImpl implements TaskRepository {
     required String body,
   }) async {
     await _store.ensureLoaded();
+    await _store.simulateRequest(isWrite: true);
 
     if (body.trim().isEmpty) {
       throw const ValidationException('Comment cannot be empty.');
@@ -204,6 +236,51 @@ class TaskRepositoryImpl implements TaskRepository {
     );
     _store.comments = [..._store.comments, model];
     return _toComment(model);
+  }
+
+  TaskModel _requireTaskInOrg({
+    required String orgId,
+    required String taskId,
+  }) {
+    TaskModel? task;
+    for (final item in _store.tasks) {
+      if (item.id == taskId) {
+        task = item;
+        break;
+      }
+    }
+    if (task == null) {
+      throw NotFoundException('Task $taskId was not found.');
+    }
+    _requireProjectInOrg(orgId: orgId, projectId: task.projectId);
+    return task;
+  }
+
+  void _requireProjectInOrg({
+    required String orgId,
+    required String projectId,
+  }) {
+    final index = _store.projects.indexWhere((p) => p.id == projectId);
+    if (index < 0) {
+      throw NotFoundException('Project $projectId was not found.');
+    }
+    if (_store.projects[index].orgId != orgId) {
+      throw const ForbiddenException(
+        'Project does not belong to your organization.',
+      );
+    }
+  }
+
+  void _restoreOrgCache(String orgId) {
+    final cachedProjects = _cache.loadProjects(orgId);
+    final cachedTasks = _cache.loadTasks(orgId);
+    if (cachedProjects == null && cachedTasks == null) return;
+
+    _store.applyOrgCache(
+      orgId: orgId,
+      projects: cachedProjects,
+      tasks: cachedTasks,
+    );
   }
 
   bool _matchesFilter(TaskModel task, TaskFilter filter) {

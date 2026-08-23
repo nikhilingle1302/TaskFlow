@@ -21,6 +21,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
   @override
   Future<void> markAsRead(String notificationId) async {
     await _store.ensureLoaded();
+    await _store.simulateRequest(isWrite: true);
     final index =
         _store.notifications.indexWhere((n) => n.id == notificationId);
     if (index < 0) {

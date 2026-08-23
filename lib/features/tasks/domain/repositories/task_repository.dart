@@ -24,7 +24,10 @@ abstract class TaskRepository {
     TaskFilter filter = const TaskFilter(),
   });
 
-  Future<TaskItem> getTaskById(String taskId);
+  Future<TaskItem> getTaskById({
+    required String orgId,
+    required String taskId,
+  });
 
   Future<TaskItem> createTask({
     required String orgId,
@@ -42,7 +45,10 @@ abstract class TaskRepository {
     required TaskItem task,
   });
 
-  Future<void> deleteTask(String taskId);
+  Future<void> deleteTask({
+    required String orgId,
+    required String taskId,
+  });
 
   Future<TaskItem> assignTask({
     required String orgId,
