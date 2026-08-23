@@ -11,6 +11,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../injection.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../cubit/task_cubit.dart';
+import '../pages/task_form_page.dart';
 import '../widgets/task_filter_sheet.dart';
 import '../widgets/task_list_tile.dart';
 
@@ -87,14 +88,57 @@ class _TasksViewState extends State<_TasksView> {
     }
   }
 
+  Future<void> _openCreateForm() async {
+    final cubit = context.read<TaskCubit>();
+    final state = cubit.state;
+    final projects = state is TaskLoaded
+        ? state.projects
+        : state is TaskEmpty
+            ? state.projects
+            : const [];
+
+    if (projects.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Create a project before adding tasks.')),
+      );
+      return;
+    }
+
+    final taskId = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => BlocProvider.value(
+          value: cubit,
+          child: const TaskFormPage(),
+        ),
+      ),
+    );
+
+    if (taskId != null && mounted) {
+      cubit.load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text('Tasks', style: AppTypography.screenTitle()),
+        actions: [
+          IconButton(
+            onPressed: _openCreateForm,
+            icon: Icon(Icons.add, size: 24.sp),
+          ),
+        ],
       ),
-      body: BlocBuilder<TaskCubit, TaskState>(
+      body: BlocConsumer<TaskCubit, TaskState>(
+        listener: (context, state) {
+          if (state is TaskActionFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
         builder: (context, state) {
           if (state is TaskLoading || state is TaskInitial) {
             return const Center(child: CircularProgressIndicator());
@@ -117,10 +161,21 @@ class _TasksViewState extends State<_TasksView> {
           }
 
           if (state is TaskEmpty) {
-            return Center(
-              child: Text(
-                'No tasks yet.',
-                style: AppTypography.body(color: AppColors.textSecondary),
+            return RefreshIndicator(
+              onRefresh: () => context.read<TaskCubit>().load(),
+              child: ListView(
+                padding: EdgeInsets.all(AppSpacing.screenHorizontal.w),
+                children: [
+                  SizedBox(height: 120.h),
+                  Center(
+                    child: Text(
+                      'No tasks yet. Tap + to create one.',
+                      style: AppTypography.body(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           }

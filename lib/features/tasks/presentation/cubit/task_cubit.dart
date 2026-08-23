@@ -1,7 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../../../auth/domain/repositories/org_repository.dart';
 import '../../../projects/domain/repositories/project_repository.dart';
+import '../../domain/entities/task_item.dart';
 import '../../domain/repositories/task_repository.dart';
 import 'task_state.dart';
 
@@ -32,7 +34,7 @@ class TaskCubit extends Cubit<TaskState> {
       final tasks = await _taskRepository.getTasks(orgId: _orgId);
 
       if (tasks.isEmpty) {
-        emit(const TaskEmpty());
+        emit(TaskEmpty(projects: projects, members: members));
         return;
       }
 
@@ -224,5 +226,76 @@ class TaskCubit extends Cubit<TaskState> {
     }
 
     return groups;
+  }
+
+  Future<String?> createTask({
+    required String projectId,
+    required String title,
+    required String description,
+    required String status,
+    required String priority,
+    String? assigneeId,
+    DateTime? dueDate,
+  }) async {
+    final current = state;
+
+    try {
+      final task = await _taskRepository.createTask(
+        orgId: _orgId,
+        projectId: projectId,
+        title: title,
+        description: description,
+        status: status,
+        priority: priority,
+        assigneeId: assigneeId,
+        dueDate: dueDate,
+      );
+      await load();
+      return task.id;
+    } on AppException catch (e) {
+      if (current is TaskLoaded || current is TaskEmpty) {
+        emit(TaskActionFailure(message: e.message, previous: current));
+        emit(current);
+      }
+      return null;
+    }
+  }
+
+  Future<bool> updateTask({
+    required TaskItem task,
+  }) async {
+    final current = state;
+
+    try {
+      await _taskRepository.updateTask(orgId: _orgId, task: task);
+      if (current is TaskLoaded || current is TaskEmpty) {
+        await load();
+      }
+      return true;
+    } on AppException catch (e) {
+      if (current is TaskLoaded) {
+        emit(TaskActionFailure(message: e.message, previous: current));
+        emit(current);
+      }
+      rethrow;
+    }
+  }
+
+  Future<bool> deleteTask(String taskId) async {
+    final current = state;
+
+    try {
+      await _taskRepository.deleteTask(taskId);
+      if (current is TaskLoaded || current is TaskEmpty) {
+        await load();
+      }
+      return true;
+    } on AppException catch (e) {
+      if (current is TaskLoaded) {
+        emit(TaskActionFailure(message: e.message, previous: current));
+        emit(current);
+      }
+      rethrow;
+    }
   }
 }

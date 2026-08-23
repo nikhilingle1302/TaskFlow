@@ -24,15 +24,17 @@ class TaskDetailData extends Equatable {
     required this.project,
     required this.assignee,
     required this.comments,
+    required this.members,
   });
 
   final TaskItem task;
   final Project project;
   final User? assignee;
   final List<TaskCommentItem> comments;
+  final List<User> members;
 
   @override
-  List<Object?> get props => [task.id, project.id, assignee?.id, comments];
+  List<Object?> get props => [task.id, project.id, assignee?.id, comments, members];
 }
 
 abstract class TaskDetailState extends Equatable {

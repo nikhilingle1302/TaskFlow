@@ -22,6 +22,7 @@ class TaskItem {
   });
 
   TaskItem copyWith({
+    String? projectId,
     String? title,
     String? description,
     String? status,
@@ -33,7 +34,7 @@ class TaskItem {
   }) {
     return TaskItem(
       id: id,
-      projectId: projectId,
+      projectId: projectId ?? this.projectId,
       title: title ?? this.title,
       description: description ?? this.description,
       status: status ?? this.status,

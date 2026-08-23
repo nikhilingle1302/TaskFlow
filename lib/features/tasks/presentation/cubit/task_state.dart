@@ -128,7 +128,29 @@ class TaskLoaded extends TaskState {
 }
 
 class TaskEmpty extends TaskState {
-  const TaskEmpty();
+  const TaskEmpty({
+    required this.projects,
+    required this.members,
+  });
+
+  final List<Project> projects;
+  final List<User> members;
+
+  @override
+  List<Object?> get props => [projects, members];
+}
+
+class TaskActionFailure extends TaskState {
+  const TaskActionFailure({
+    required this.message,
+    required this.previous,
+  });
+
+  final String message;
+  final TaskState previous;
+
+  @override
+  List<Object?> get props => [message, previous];
 }
 
 class TaskFailure extends TaskState {
