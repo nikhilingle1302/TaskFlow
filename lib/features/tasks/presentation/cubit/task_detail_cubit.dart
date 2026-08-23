@@ -45,6 +45,7 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
       }
 
       final members = await _orgRepository.getMembers(_orgId);
+      final projects = await _projectRepository.getProjects(_orgId);
       final memberMap = {for (final member in members) member.id: member};
 
       final assignee = task.assigneeId == null
@@ -72,6 +73,7 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
             assignee: assignee,
             comments: comments,
             members: members,
+            projects: projects,
           ),
         ),
       );

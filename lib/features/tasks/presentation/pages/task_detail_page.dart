@@ -14,7 +14,6 @@ import '../../../../shared/widgets/priority_chip.dart';
 import '../../../../shared/widgets/status_chip.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/domain/entities/user.dart';
-import '../cubit/task_cubit.dart';
 import '../cubit/task_detail_cubit.dart';
 import 'task_form_page.dart';
 
@@ -32,27 +31,15 @@ class TaskDetailPage extends StatelessWidget {
 
     final session = authState.session;
 
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) => TaskDetailCubit(
-            taskRepository: sl(),
-            projectRepository: sl(),
-            orgRepository: sl(),
-            taskId: taskId,
-            orgId: session.orgId,
-            userId: session.userId,
-          )..load(),
-        ),
-        BlocProvider(
-          create: (_) => TaskCubit(
-            taskRepository: sl(),
-            projectRepository: sl(),
-            orgRepository: sl(),
-            orgId: session.orgId,
-          )..load(),
-        ),
-      ],
+    return BlocProvider(
+      create: (_) => TaskDetailCubit(
+        taskRepository: sl(),
+        projectRepository: sl(),
+        orgRepository: sl(),
+        taskId: taskId,
+        orgId: session.orgId,
+        userId: session.userId,
+      )..load(),
       child: const _TaskDetailView(),
     );
   }
@@ -89,16 +76,19 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
   }
 
   Future<void> _openEdit(TaskDetailData data) async {
+    final detailCubit = context.read<TaskDetailCubit>();
     final updated = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
-        builder: (_) => BlocProvider.value(
-          value: context.read<TaskCubit>(),
-          child: TaskFormPage(task: data.task),
+        builder: (_) => TaskFormPage(
+          task: data.task,
+          projects: data.projects,
+          members: data.members,
+          onSave: detailCubit.updateTask,
         ),
       ),
     );
     if (updated == true && mounted) {
-      context.read<TaskDetailCubit>().load();
+      detailCubit.load();
     }
   }
 

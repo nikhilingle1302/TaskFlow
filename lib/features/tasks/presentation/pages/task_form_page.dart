@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -17,10 +18,16 @@ class TaskFormPage extends StatefulWidget {
     super.key,
     this.task,
     this.initialProjectId,
+    this.projects,
+    this.members,
+    this.onSave,
   });
 
   final TaskItem? task;
   final String? initialProjectId;
+  final List<Project>? projects;
+  final List<User>? members;
+  final Future<void> Function(TaskItem task)? onSave;
 
   bool get isEditing => task != null;
 
@@ -74,16 +81,30 @@ class _TaskFormPageState extends State<TaskFormPage> {
     super.dispose();
   }
 
-  List<Project> _projects(TaskState state) {
+  List<Project> _projectsFromCubit(TaskState state) {
     if (state is TaskLoaded) return state.projects;
     if (state is TaskEmpty) return state.projects;
     return const [];
   }
 
-  List<User> _members(TaskState state) {
+  List<User> _membersFromCubit(TaskState state) {
     if (state is TaskLoaded) return state.members;
     if (state is TaskEmpty) return state.members;
     return const [];
+  }
+
+  String? _resolveProjectId(List<Project> projects) {
+    if (projects.isEmpty) return null;
+    if (_projectId != null && projects.any((p) => p.id == _projectId)) {
+      return _projectId;
+    }
+    return projects.first.id;
+  }
+
+  String? _resolveAssigneeId(List<User> members) {
+    if (_assigneeId == null) return null;
+    if (members.any((m) => m.id == _assigneeId)) return _assigneeId;
+    return null;
   }
 
   Future<void> _pickDueDate() async {
@@ -98,52 +119,200 @@ class _TaskFormPageState extends State<TaskFormPage> {
     }
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit(
+    List<Project> projects,
+    List<User> members,
+  ) async {
     if (!_formKey.currentState!.validate()) return;
 
-    final cubit = context.read<TaskCubit>();
-    final state = cubit.state;
-    final projects = _projects(state);
-    final projectId = _projectId ??
-        (projects.isNotEmpty ? projects.first.id : null);
+    final projectId = _resolveProjectId(projects);
     if (projectId == null) return;
+
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
+    final assigneeId = _resolveAssigneeId(members);
 
     if (widget.isEditing) {
       final task = widget.task!.copyWith(
-        projectId: _projectId,
-        title: title,
-        description: description,
-        status: _status,
-        priority: _priority,
-        assigneeId: _assigneeId,
-        dueDate: _dueDate,
-        clearAssignee: _assigneeId == null,
-        clearDueDate: _dueDate == null,
-      );
-      try {
-        await cubit.updateTask(task: task);
-        if (mounted) Navigator.of(context).pop(true);
-      } catch (_) {}
-    } else {
-      final taskId = await cubit.createTask(
         projectId: projectId,
         title: title,
         description: description,
         status: _status,
         priority: _priority,
-        assigneeId: _assigneeId,
+        assigneeId: assigneeId,
         dueDate: _dueDate,
+        clearAssignee: assigneeId == null,
+        clearDueDate: _dueDate == null,
       );
+
+      try {
+        if (widget.onSave != null) {
+          await widget.onSave!(task);
+        } else {
+          await context.read<TaskCubit>().updateTask(task: task);
+        }
+        if (mounted) Navigator.of(context).pop(true);
+      } on AppException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.message)),
+          );
+        }
+      }
+    } else {
+      final taskId = await context.read<TaskCubit>().createTask(
+            projectId: projectId,
+            title: title,
+            description: description,
+            status: _status,
+            priority: _priority,
+            assigneeId: assigneeId,
+            dueDate: _dueDate,
+          );
       if (mounted && taskId != null) {
         Navigator.of(context).pop(taskId);
       }
     }
   }
 
+  Widget _buildForm(List<Project> projects, List<User> members) {
+    final projectId = _resolveProjectId(projects);
+    final assigneeId = _resolveAssigneeId(members);
+
+    return SafeArea(
+      child: Form(
+        key: _formKey,
+        child: ListView(
+          padding: EdgeInsets.all(AppSpacing.screenHorizontal.w),
+          children: [
+            AppTextField(
+              label: 'Title',
+              controller: _titleController,
+              hint: 'Update landing page copy',
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Task title is required';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: AppSpacing.lg.h),
+            DropdownButtonFormField<String>(
+              value: projectId,
+              decoration: const InputDecoration(labelText: 'Project'),
+              items: projects
+                  .map(
+                    (project) => DropdownMenuItem(
+                      value: project.id,
+                      child: Text(project.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: projects.isEmpty
+                  ? null
+                  : (value) => setState(() => _projectId = value),
+              validator: (value) {
+                if (value == null) return 'Project is required';
+                return null;
+              },
+            ),
+            SizedBox(height: AppSpacing.lg.h),
+            AppTextField(
+              label: 'Description',
+              controller: _descriptionController,
+              hint: 'What needs to be done?',
+            ),
+            SizedBox(height: AppSpacing.lg.h),
+            DropdownButtonFormField<String?>(
+              value: assigneeId,
+              decoration: const InputDecoration(labelText: 'Assignee'),
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('Unassigned'),
+                ),
+                ...members.map(
+                  (member) => DropdownMenuItem(
+                    value: member.id,
+                    child: Text(member.name),
+                  ),
+                ),
+              ],
+              onChanged: (value) => setState(() => _assigneeId = value),
+            ),
+            SizedBox(height: AppSpacing.lg.h),
+            DropdownButtonFormField<String>(
+              value: _priority,
+              decoration: const InputDecoration(labelText: 'Priority'),
+              items: _priorities
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item.$1,
+                      child: Text(item.$2),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) setState(() => _priority = value);
+              },
+            ),
+            SizedBox(height: AppSpacing.lg.h),
+            DropdownButtonFormField<String>(
+              value: _status,
+              decoration: const InputDecoration(labelText: 'Status'),
+              items: _statuses
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item.$1,
+                      child: Text(item.$2),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) setState(() => _status = value);
+              },
+            ),
+            SizedBox(height: AppSpacing.lg.h),
+            Text('Due date', style: AppTypography.label()),
+            SizedBox(height: AppSpacing.sm.h),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _pickDueDate,
+                    child: Text(
+                      _dueDate == null
+                          ? 'Pick a date'
+                          : '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}',
+                    ),
+                  ),
+                ),
+                if (_dueDate != null) ...[
+                  SizedBox(width: AppSpacing.sm.w),
+                  IconButton(
+                    onPressed: () => setState(() => _dueDate = null),
+                    icon: const Icon(Icons.clear),
+                  ),
+                ],
+              ],
+            ),
+            SizedBox(height: AppSpacing.xxl.h),
+            AppButton(
+              label: widget.isEditing ? 'Save changes' : 'Create task',
+              onPressed:
+                  projects.isEmpty ? null : () => _submit(projects, members),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasLocalData =
+        widget.projects != null && widget.members != null;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -152,141 +321,31 @@ class _TaskFormPageState extends State<TaskFormPage> {
           style: AppTypography.screenTitle(),
         ),
       ),
-      body: BlocBuilder<TaskCubit, TaskState>(
-        builder: (context, state) {
-          final projects = _projects(state);
-          final members = _members(state);
-          final projectId = _projectId ??
-              (projects.isNotEmpty ? projects.first.id : null);
+      body: hasLocalData
+          ? _buildForm(widget.projects!, widget.members!)
+          : BlocBuilder<TaskCubit, TaskState>(
+              builder: (context, state) {
+                if (state is TaskLoading || state is TaskInitial) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          return SafeArea(
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: EdgeInsets.all(AppSpacing.screenHorizontal.w),
-                children: [
-                  AppTextField(
-                    label: 'Title',
-                    controller: _titleController,
-                    hint: 'Update landing page copy',
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Task title is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: AppSpacing.lg.h),
-                  DropdownButtonFormField<String>(
-                    value: projectId,
-                    decoration: const InputDecoration(labelText: 'Project'),
-                    items: projects
-                        .map(
-                          (project) => DropdownMenuItem(
-                            value: project.id,
-                            child: Text(project.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: projects.isEmpty
-                        ? null
-                        : (value) => setState(() => _projectId = value),
-                    validator: (value) {
-                      if (value == null) return 'Project is required';
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: AppSpacing.lg.h),
-                  AppTextField(
-                    label: 'Description',
-                    controller: _descriptionController,
-                    hint: 'What needs to be done?',
-                  ),
-                  SizedBox(height: AppSpacing.lg.h),
-                  DropdownButtonFormField<String?>(
-                    value: _assigneeId,
-                    decoration: const InputDecoration(labelText: 'Assignee'),
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Unassigned'),
+                final projects = _projectsFromCubit(state);
+                final members = _membersFromCubit(state);
+
+                if (projects.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No projects available.',
+                      style: AppTypography.body(
+                        color: AppColors.textSecondary,
                       ),
-                      ...members.map(
-                        (member) => DropdownMenuItem(
-                          value: member.id,
-                          child: Text(member.name),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) => setState(() => _assigneeId = value),
-                  ),
-                  SizedBox(height: AppSpacing.lg.h),
-                  DropdownButtonFormField<String>(
-                    value: _priority,
-                    decoration: const InputDecoration(labelText: 'Priority'),
-                    items: _priorities
-                        .map(
-                          (item) => DropdownMenuItem(
-                            value: item.$1,
-                            child: Text(item.$2),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) setState(() => _priority = value);
-                    },
-                  ),
-                  SizedBox(height: AppSpacing.lg.h),
-                  DropdownButtonFormField<String>(
-                    value: _status,
-                    decoration: const InputDecoration(labelText: 'Status'),
-                    items: _statuses
-                        .map(
-                          (item) => DropdownMenuItem(
-                            value: item.$1,
-                            child: Text(item.$2),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) setState(() => _status = value);
-                    },
-                  ),
-                  SizedBox(height: AppSpacing.lg.h),
-                  Text('Due date', style: AppTypography.label()),
-                  SizedBox(height: AppSpacing.sm.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _pickDueDate,
-                          child: Text(
-                            _dueDate == null
-                                ? 'Pick a date'
-                                : '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}',
-                          ),
-                        ),
-                      ),
-                      if (_dueDate != null) ...[
-                        SizedBox(width: AppSpacing.sm.w),
-                        IconButton(
-                          onPressed: () => setState(() => _dueDate = null),
-                          icon: const Icon(Icons.clear),
-                        ),
-                      ],
-                    ],
-                  ),
-                  SizedBox(height: AppSpacing.xxl.h),
-                  AppButton(
-                    label: widget.isEditing ? 'Save changes' : 'Create task',
-                    onPressed: projects.isEmpty ? null : _submit,
-                  ),
-                ],
-              ),
+                    ),
+                  );
+                }
+
+                return _buildForm(projects, members);
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }
