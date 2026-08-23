@@ -248,146 +248,148 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
         final task = data.task;
         final dateFormat = DateFormat('MMM d, yyyy');
 
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          appBar: AppBar(
-            title: Text('Task details', style: AppTypography.screenTitle()),
-            actions: [
-              PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'edit') {
-                    await _openEdit(data);
-                  } else if (value == 'delete') {
-                    await _confirmDelete();
-                  }
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
-              ),
-            ],
-          ),
-          body: Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.all(AppSpacing.screenHorizontal.w),
-                  children: [
-                    Text(task.title, style: AppTypography.largeHeading()),
-                    SizedBox(height: AppSpacing.md.h),
-                    Wrap(
-                      spacing: AppSpacing.sm.w,
-                      runSpacing: AppSpacing.sm.h,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        PopupMenuButton<String>(
-                          onSelected: _changeStatus,
-                          itemBuilder: (context) => _statuses
-                              .map(
-                                (item) => PopupMenuItem(
-                                  value: item.$1,
-                                  child: Text(item.$2),
-                                ),
-                              )
-                              .toList(),
-                          child: StatusChip(status: task.status),
-                        ),
-                        PopupMenuButton<String>(
-                          onSelected: _changePriority,
-                          itemBuilder: (context) => _priorities
-                              .map(
-                                (item) => PopupMenuItem(
-                                  value: item.$1,
-                                  child: Text(item.$2),
-                                ),
-                              )
-                              .toList(),
-                          child: PriorityChip(priority: task.priority),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: AppSpacing.xxl.h),
-                    _DetailCard(
-                      children: [
-                        _InfoRow(
-                          label: 'Project',
-                          value: data.project.name,
-                        ),
-                        _AssigneeRow(
-                          assigneeName: data.assignee?.name ?? 'Unassigned',
-                          members: data.members,
-                          onAssign: _changeAssignee,
-                        ),
-                        _InfoRow(
-                          label: 'Due date',
-                          value: task.dueDate == null
-                              ? 'No due date'
-                              : dateFormat.format(task.dueDate!.toLocal()),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: AppSpacing.xxl.h),
-                    Text('Description', style: AppTypography.cardTitle()),
-                    SizedBox(height: AppSpacing.sm.h),
-                    Text(
-                      task.description.isEmpty
-                          ? 'No description provided.'
-                          : task.description,
-                      style: AppTypography.body(color: AppColors.textSecondary),
-                    ),
-                    SizedBox(height: AppSpacing.xxl.h),
-                    Text('Comments', style: AppTypography.cardTitle()),
-                    SizedBox(height: AppSpacing.md.h),
-                    if (data.comments.isEmpty)
+        return SafeArea(
+          child: Scaffold(
+            backgroundColor: AppColors.background,
+            appBar: AppBar(
+              title: Text('Task details', style: AppTypography.screenTitle()),
+              actions: [
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      await _openEdit(data);
+                    } else if (value == 'delete') {
+                      await _confirmDelete();
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    PopupMenuItem(value: 'delete', child: Text('Delete')),
+                  ],
+                ),
+              ],
+            ),
+            body: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.all(AppSpacing.screenHorizontal.w),
+                    children: [
+                      Text(task.title, style: AppTypography.largeHeading()),
+                      SizedBox(height: AppSpacing.md.h),
+                      Wrap(
+                        spacing: AppSpacing.sm.w,
+                        runSpacing: AppSpacing.sm.h,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          PopupMenuButton<String>(
+                            onSelected: _changeStatus,
+                            itemBuilder: (context) => _statuses
+                                .map(
+                                  (item) => PopupMenuItem(
+                                    value: item.$1,
+                                    child: Text(item.$2),
+                                  ),
+                                )
+                                .toList(),
+                            child: StatusChip(status: task.status),
+                          ),
+                          PopupMenuButton<String>(
+                            onSelected: _changePriority,
+                            itemBuilder: (context) => _priorities
+                                .map(
+                                  (item) => PopupMenuItem(
+                                    value: item.$1,
+                                    child: Text(item.$2),
+                                  ),
+                                )
+                                .toList(),
+                            child: PriorityChip(priority: task.priority),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: AppSpacing.xxl.h),
+                      _DetailCard(
+                        children: [
+                          _InfoRow(
+                            label: 'Project',
+                            value: data.project.name,
+                          ),
+                          _AssigneeRow(
+                            assigneeName: data.assignee?.name ?? 'Unassigned',
+                            members: data.members,
+                            onAssign: _changeAssignee,
+                          ),
+                          _InfoRow(
+                            label: 'Due date',
+                            value: task.dueDate == null
+                                ? 'No due date'
+                                : dateFormat.format(task.dueDate!.toLocal()),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: AppSpacing.xxl.h),
+                      Text('Description', style: AppTypography.cardTitle()),
+                      SizedBox(height: AppSpacing.sm.h),
                       Text(
-                        'No comments yet.',
-                        style: AppTypography.body(
-                          color: AppColors.textSecondary,
-                        ),
-                      )
-                    else
-                      ...data.comments.map(
-                        (item) => _CommentTile(item: item),
+                        task.description.isEmpty
+                            ? 'No description provided.'
+                            : task.description,
+                        style: AppTypography.body(color: AppColors.textSecondary),
                       ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.screenHorizontal.w,
-                  AppSpacing.sm.h,
-                  AppSpacing.screenHorizontal.w,
-                  AppSpacing.lg.h,
-                ),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border(top: BorderSide(color: AppColors.border)),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _commentController,
-                        decoration: const InputDecoration(
-                          hintText: 'Add a comment...',
-                          border: OutlineInputBorder(),
-                          isDense: true,
+                      SizedBox(height: AppSpacing.xxl.h),
+                      Text('Comments', style: AppTypography.cardTitle()),
+                      SizedBox(height: AppSpacing.md.h),
+                      if (data.comments.isEmpty)
+                        Text(
+                          'No comments yet.',
+                          style: AppTypography.body(
+                            color: AppColors.textSecondary,
+                          ),
+                        )
+                      else
+                        ...data.comments.map(
+                          (item) => _CommentTile(item: item),
                         ),
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _submitComment(),
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.sm.w),
-                    IconButton(
-                      onPressed: _submitComment,
-                      icon: const Icon(Icons.send_rounded),
-                      color: AppColors.primary,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Container(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.screenHorizontal.w,
+                    AppSpacing.sm.h,
+                    AppSpacing.screenHorizontal.w,
+                    AppSpacing.lg.h,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border(top: BorderSide(color: AppColors.border)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _commentController,
+                          decoration: const InputDecoration(
+                            hintText: 'Add a comment...',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _submitComment(),
+                        ),
+                      ),
+                      SizedBox(width: AppSpacing.sm.w),
+                      IconButton(
+                        onPressed: _submitComment,
+                        icon: const Icon(Icons.send_rounded),
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

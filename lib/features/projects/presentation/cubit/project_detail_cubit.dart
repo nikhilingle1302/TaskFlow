@@ -33,8 +33,16 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
   final String _orgId;
   final String _role;
 
-  Future<void> load() async {
-    emit(const ProjectDetailLoading());
+  Future<void> load({bool? silent}) async {
+    final previous = state;
+    final keepContent = silent ?? previous is ProjectDetailLoaded;
+
+    if (keepContent && previous is ProjectDetailLoaded) {
+      emit(ProjectDetailLoaded(previous.data.copyWith(isMutating: true)));
+    } else {
+      emit(const ProjectDetailLoading());
+    }
+
     try {
       final project = await _projectRepository.getProjectById(
         orgId: _orgId,
@@ -74,9 +82,29 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
         ),
       );
     } on AppException catch (e) {
-      emit(ProjectDetailFailure(message: e.message));
+      if (keepContent && previous is ProjectDetailLoaded) {
+        emit(
+          ProjectDetailActionFailure(
+            message: e.message,
+            previous: previous,
+          ),
+        );
+        emit(ProjectDetailLoaded(previous.data.copyWith(isMutating: false)));
+      } else {
+        emit(ProjectDetailFailure(message: e.message));
+      }
     } catch (_) {
-      emit(const ProjectDetailFailure(message: 'Could not load project.'));
+      if (keepContent && previous is ProjectDetailLoaded) {
+        emit(
+          ProjectDetailActionFailure(
+            message: 'Could not load project.',
+            previous: previous,
+          ),
+        );
+        emit(ProjectDetailLoaded(previous.data.copyWith(isMutating: false)));
+      } else {
+        emit(const ProjectDetailFailure(message: 'Could not load project.'));
+      }
     }
   }
 

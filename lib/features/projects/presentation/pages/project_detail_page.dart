@@ -60,8 +60,28 @@ class ProjectDetailPage extends StatelessWidget {
   }
 }
 
-class _ProjectDetailView extends StatelessWidget {
+class _ProjectDetailView extends StatefulWidget {
   const _ProjectDetailView();
+
+  @override
+  State<_ProjectDetailView> createState() => _ProjectDetailViewState();
+}
+
+class _ProjectDetailViewState extends State<_ProjectDetailView>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   Future<void> _confirmDelete(BuildContext context, String projectId) async {
     final confirmed = await showDialog<bool>(
@@ -158,87 +178,86 @@ class _ProjectDetailView extends StatelessWidget {
             final data = state.data;
             final project = data.project;
 
-            return DefaultTabController(
-              length: 4,
-              child: Scaffold(
-                backgroundColor: AppColors.background,
-                appBar: AppBar(
-                  title: Text(project.name, style: AppTypography.screenTitle()),
-                  actions: [
-                    PopupMenuButton<String>(
-                      onSelected: (value) async {
-                        if (value == 'edit') {
-                          final updated = await Navigator.of(context).push<bool>(
-                            MaterialPageRoute<bool>(
-                              builder: (_) => BlocProvider.value(
-                                value: context.read<ProjectCubit>(),
-                                child: ProjectFormPage(
-                                  projectId: project.id,
-                                  initialName: project.name,
-                                  initialDescription: project.description,
-                                ),
+            return Scaffold(
+              backgroundColor: AppColors.background,
+              appBar: AppBar(
+                title: Text(project.name, style: AppTypography.screenTitle()),
+                actions: [
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'edit') {
+                        final updated = await Navigator.of(context).push<bool>(
+                          MaterialPageRoute<bool>(
+                            builder: (_) => BlocProvider.value(
+                              value: context.read<ProjectCubit>(),
+                              child: ProjectFormPage(
+                                projectId: project.id,
+                                initialName: project.name,
+                                initialDescription: project.description,
                               ),
                             ),
-                          );
-                          if (updated == true && context.mounted) {
-                            context.read<ProjectDetailCubit>().load();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Project updated')),
-                            );
-                          }
-                        } else if (value == 'delete') {
-                          await _confirmDelete(context, project.id);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Text('Edit'),
-                        ),
-                        if (data.isAdmin)
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Delete'),
                           ),
-                      ],
-                    ),
-                  ],
-                  bottom: TabBar(
-                    isScrollable: true,
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.textSecondary,
-                    indicatorColor: AppColors.primary,
-                    tabs: const [
-                      Tab(text: 'Overview'),
-                      Tab(text: 'Tasks'),
-                      Tab(text: 'Members'),
-                      Tab(text: 'Activity'),
+                        );
+                        if (updated == true && context.mounted) {
+                          context.read<ProjectDetailCubit>().load();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Project updated')),
+                          );
+                        }
+                      } else if (value == 'delete') {
+                        await _confirmDelete(context, project.id);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Text('Edit'),
+                      ),
+                      if (data.isAdmin)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete'),
+                        ),
                     ],
                   ),
-                ),
-                body: Stack(
-                  children: [
-                    TabBarView(
-                      children: [
-                        _OverviewTab(data: data),
-                        _TasksTab(tasks: data.tasks),
-                        _MembersTab(
-                          members: data.members,
-                          isAdmin: data.isAdmin,
-                          isMutating: data.isMutating,
-                        ),
-                        _ActivityTab(comments: data.comments),
-                      ],
-                    ),
-                    if (data.isMutating)
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: LinearProgressIndicator(minHeight: 2),
-                      ),
+                ],
+                bottom: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.primary,
+                  tabs: const [
+                    Tab(text: 'Overview'),
+                    Tab(text: 'Tasks'),
+                    Tab(text: 'Members'),
+                    Tab(text: 'Activity'),
                   ],
                 ),
+              ),
+              body: Stack(
+                children: [
+                  TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _OverviewTab(data: data),
+                      _TasksTab(tasks: data.tasks),
+                      _MembersTab(
+                        members: data.members,
+                        isAdmin: data.isAdmin,
+                        isMutating: data.isMutating,
+                      ),
+                      _ActivityTab(comments: data.comments),
+                    ],
+                  ),
+                  if (data.isMutating)
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: LinearProgressIndicator(minHeight: 2),
+                    ),
+                ],
               ),
             );
           },
@@ -426,9 +445,10 @@ class _MembersTab extends StatelessWidget {
     );
 
     if (selected != null && context.mounted) {
+      final messenger = ScaffoldMessenger.of(context);
       final added = await cubit.addMember(selected.id);
-      if (added && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (added) {
+        messenger.showSnackBar(
           SnackBar(content: Text('${selected.name} added to organization')),
         );
       }
@@ -457,10 +477,11 @@ class _MembersTab extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
+      final messenger = ScaffoldMessenger.of(context);
       final removed =
           await context.read<ProjectDetailCubit>().removeMember(member.id);
-      if (removed && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (removed) {
+        messenger.showSnackBar(
           SnackBar(content: Text('${member.name} removed')),
         );
       }

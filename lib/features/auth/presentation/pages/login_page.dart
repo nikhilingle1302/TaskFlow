@@ -144,18 +144,18 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(height: AppSpacing.md.h),
                     Row(
                       children: [
-                        SizedBox(
-                          height: 24.h,
-                          width: 24.w,
-                          child: Checkbox(
-                            value: _rememberMe,
-                            onChanged: (value) {
-                              setState(() => _rememberMe = value ?? false);
-                            },
-                          ),
-                        ),
-                        SizedBox(width: AppSpacing.sm.w),
-                        Text('Remember me', style: AppTypography.body()),
+                        // SizedBox(
+                        //   height: 24.h,
+                        //   width: 24.w,
+                        //   child: Checkbox(
+                        //     value: _rememberMe,
+                        //     onChanged: (value) {
+                        //       setState(() => _rememberMe = value ?? false);
+                        //     },
+                        //   ),
+                        // ),
+                        // SizedBox(width: AppSpacing.sm.w),
+                        // Text('Remember me', style: AppTypography.body()),
                         const Spacer(),
                         TextButton(
                           onPressed: () {},
