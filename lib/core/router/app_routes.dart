@@ -9,4 +9,6 @@ class AppRoutes {
   static const tasks = '/tasks';
   static const notifications = '/notifications';
   static const profile = '/profile';
+
+  static String projectDetailPath(String id) => '/projects/$id';
 }

@@ -4,6 +4,7 @@ import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
+import '../../features/projects/presentation/pages/project_detail_page.dart';
 import 'app_routes.dart';
 import 'main_shell.dart';
 
@@ -46,6 +47,13 @@ class AppRouter {
         GoRoute(
           path: AppRoutes.home,
           builder: (context, state) => const MainShell(),
+        ),
+        GoRoute(
+          path: '/projects/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return ProjectDetailPage(projectId: id);
+          },
         ),
       ],
     );
