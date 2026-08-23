@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/projects/presentation/pages/projects_page.dart';
+import '../../features/tasks/presentation/pages/tasks_page.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
@@ -20,10 +21,7 @@ class _MainShellState extends State<MainShell> {
   final _pages = const [
     HomePage(),
     ProjectsPage(),
-    PlaceholderTabPage(
-      title: 'Tasks',
-      subtitle: 'Task list',
-    ),
+    TasksPage(),
     PlaceholderTabPage(
       title: 'Notifications',
       subtitle: 'Inbox',
